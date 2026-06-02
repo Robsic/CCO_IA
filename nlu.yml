@@ -1,0 +1,116 @@
+#Aqui ensinará o Rasa a entender o que o motorista está dizendo.
+version: "3.1"
+
+nlu:
+  - intent: saudacao_radio
+    examples: |
+      - QAP
+      - CCO na escuta?
+      - central na escuta
+      - rádio teste
+      - bom dia central
+
+  - intent: confirmar_entendimento
+    examples: |
+      - copiado
+      - positivo
+      - TKS
+      - afirmativo
+      - entendido central
+      - em deslocamento
+      - a caminho
+
+  - intent: informar_emergencia
+    examples: |
+      - emergência emergência
+      - socorro
+      - acidente na via
+      - risco de desmoronamento
+      - tombamento na rampa
+      - rádio comunicou incidente na frente
+      - homem caído na pista
+
+  - intent: informar_emergencia_incendio
+    examples: |
+      - fogo no equipamento
+      - fogo no compartimento do motor
+      - fogo na roda dianteira
+      - caminhão à frente pegando fogo
+      - princípio de incêndio na cabine
+      - muita fumaça saindo do motor
+
+  - intent: solicitar_basculamento
+    examples: |
+      - solicitar permissão para bascular
+      - autorização para descarregar
+      - chegando no [britador 1](local) para bascular
+      - permissão de báscula na [pilha de estéril](local)
+      - pronto para bascular
+      - onde posso descarregar o [minério](carga)?
+      - carregado com [carvão](carga), aguardando liberação.
+
+  - intent: solicitar_carregamento
+    examples: |
+      - vazio, indo para a [escavadeira 5](local)
+      - na fila da [carregadeira](local)
+      - aguardando carregamento na [frente de lavra](local)
+      - qual o destino para carga?
+
+  - intent: informar_falha_critica
+    examples: |
+      - perdi o freio
+      - falha na direção, volante não responde
+      - freio de serviço não responde
+      - aviso de tensão do sistema alta
+      - aviso de tensão do sistema baixa
+      - caminhão não obedece o comando de parar
+
+  - intent: informar_problema_mecanico
+    examples: |
+      - caminhão perdendo potência
+      - furou o [pneu](componente) dianteiro
+      - temperatura do [motor](componente) muito alta
+      - vazamento de [óleo](componente)
+      - problema na [suspensão](componente)
+      - falha elétrica no painel
+      - solicitar equipe de manutenção
+      - falha no sistema de carga da [bateria](componente)
+      - aviso de pressão de ar do [retardador](componente)
+      - [pára-brisas](componente) quebrado por pedra
+      - nível do [líquido de arrefecimento](componente) muito baixo
+      - falha de controle do [motor](componente)
+      - nível baixo de óleo do [motor](componente)
+      - [filtro de combustível](componente) obstruído
+      - nível de combustível baixo no painel
+      - pressão do óleo baixa
+      - falha do [alarme de ré](componente)
+      - superaquecimento do [conversor de torque](componente)
+      - [farol](componente) falhou e apagou tudo
+      - [retardador automático](componente) parou de funcionar
+      - [pneu](componente) traseiro furado
+
+  - intent: informar_status_operacional
+    examples: |
+      - caminhão [cheio](status_carga)
+      - operando [vazio](status_carga)
+      - iniciando turno
+      - parando para refeição
+      - finalizando turno, indo para o pátio
+      - parada de comboio
+
+  - intent: solicitar_ultrapassagem
+    examples: |
+      - pedir permissão para ultrapassar [caminhão](veiculo) quebrado
+      - posso passar o [caminhão](veiculo) parado na frente?
+      - solicitando ultrapassagem na [motoniveladora](veiculo)
+      - pedir para passar o [nivelador](veiculo)
+      - ultrapassar [veículo leve](veiculo) na via
+      - [veículo leve](veiculo) na minha frente, posso passar?
+
+  - intent: informar_condicao_via
+    examples: |
+      - caminhão à frente parou abruptamente
+      - excesso de poeira na área, visibilidade ruim
+      - poeira excessiva vindo do caminhão à frente
+      - [veículo leve](veiculo) parado em local de despejo
+      - muita poeira, está perigoso

@@ -1,0 +1,29 @@
+version: "3.1"
+
+intents:
+  - saudacao_radio
+  - confirmar_entendimento
+  - informar_emergencia
+  - informar_emergencia_incendio
+  - solicitar_basculamento
+  - solicitar_carregamento
+  - informar_problema_mecanico
+  - informar_falha_critica
+  - informar_status_operacional
+  - solicitar_ultrapassagem
+  - informar_condicao_via
+
+entities:
+  - local
+  - componente
+  - carga
+  - status_carga
+  - veiculo
+
+# Slots só são necessários se você for rastrear o contexto entre mensagens (o que é bom, mas opcional se o LLM fizer isso).
+slots:
+  local:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: local

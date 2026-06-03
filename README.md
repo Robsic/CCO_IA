@@ -1,4 +1,4 @@
-# CCO-IA — Central de Comando Inteligente para Mineração
+# 🎙️ CCO-IA — Central de Comando Inteligente para Mineração
 
 > Sistema de comunicação por voz em tempo real para operadores de equipamentos pesados de mineração, utilizando reconhecimento de fala offline, NLU com Rasa e geração de resposta via LLM local (Ollama).
 
@@ -115,24 +115,26 @@ O sistema é composto por **4 nós ROS 2** independentes que se comunicam exclus
 - Ubuntu 22.04 ou superior (testado)
 - ROS 2 Humble (ou Jazzy)
 
-### Python
-- Python 3.10+
+### ⚠️ Dois ambientes Python separados
 
-### Dependências Python
+O projeto usa **dois intérpretes Python distintos** por incompatibilidade de dependências:
 
-```bash
-pip install torch torchaudio sounddevice vosk requests ollama
-```
+| Ambiente | Versão | Usado por |
+|---|---|---|
+| **venv Rasa** | Python **3.10** | `No_Rasa.py` + servidor Rasa NLU |
+| **Sistema / ROS 2** | Python **3.12** | `No_Vosk.py`, `No_LLM.py`, `No_Fala.py` |
+
+> O Rasa e suas dependências (spaCy, TensorFlow) exigem Python 3.10. Os demais nós rodam no Python 3.12 do sistema junto ao ROS 2.
 
 ### Modelos e ferramentas externas
 
-| Componente | Instalação |
-|---|---|
-| **Vosk** (STT) | Baixe o modelo `vosk-model-small-pt-0.3` em [alphacephei.com/vosk/models](https://alphacephei.com/vosk/models) e extraia na pasta do projeto |
-| **Rasa** (NLU) | `pip install rasa` |
-| **spaCy** (pipeline Rasa) | `pip install spacy && python -m spacy download pt_core_news_sm` |
-| **Ollama** (LLM) | Instale em [ollama.com](https://ollama.com) e rode `ollama pull llama3.2:1b` |
-| **Silero TTS** | Baixado automaticamente pelo PyTorch Hub na primeira execução |
+| Componente | Ambiente | Instalação |
+|---|---|---|
+| **Vosk** (STT) | Python 3.12 | `pip install vosk` + baixar modelo (ver abaixo) |
+| **Rasa** (NLU) | Python 3.10 (venv) | `pip install rasa` |
+| **spaCy** (pipeline Rasa) | Python 3.10 (venv) | `pip install spacy && python -m spacy download pt_core_news_sm` |
+| **Ollama** (LLM) | Python 3.12 | Instale em [ollama.com](https://ollama.com) e rode `ollama pull llama3.2:1b` |
+| **Silero TTS** | Python 3.12 | Baixado automaticamente pelo PyTorch Hub na primeira execução |
 
 ---
 
@@ -141,7 +143,6 @@ pip install torch torchaudio sounddevice vosk requests ollama
 ### 1. Clone o repositório e configure o ambiente ROS 2
 
 ```bash
-# Dentro do seu workspace ROS 2
 cd ~/ros2_ws/src
 git clone <url-do-repositorio> cco_ia
 cd ~/ros2_ws
@@ -149,14 +150,30 @@ colcon build --packages-select cco_ia
 source install/setup.bash
 ```
 
-### 2. Instale as dependências Python
+### 2. Instale as dependências no Python 3.12 (sistema)
+
+Essas dependências são para os nós Vosk, LLM e Fala:
 
 ```bash
-pip install torch torchaudio sounddevice vosk requests ollama rasa
-python -m spacy download pt_core_news_sm
+pip3.12 install torch torchaudio sounddevice vosk requests ollama
 ```
 
-### 3. Baixe o modelo Vosk
+### 3. Crie o ambiente virtual Python 3.10 para o Rasa
+
+```bash
+# Crie e ative o venv
+python3.10 -m venv ~/venvs/rasa_env
+source ~/venvs/rasa_env/bin/activate
+
+# Instale o Rasa e o modelo de linguagem
+pip install rasa
+pip install spacy
+python -m spacy download pt_core_news_sm
+
+deactivate
+```
+
+### 4. Baixe o modelo Vosk
 
 ```bash
 cd ~/ros2_ws/src/cco_ia
@@ -164,7 +181,7 @@ wget https://alphacephei.com/vosk/models/vosk-model-small-pt-0.3.zip
 unzip vosk-model-small-pt-0.3.zip
 ```
 
-### 4. Configure o Ollama e baixe o modelo LLM
+### 5. Configure o Ollama e baixe o modelo LLM
 
 ```bash
 # Instale o Ollama (seguir instruções em ollama.com)
@@ -187,14 +204,21 @@ Os arquivos de configuração Rasa estão na raiz do projeto:
 
 ### Treinar e iniciar o servidor Rasa NLU
 
+O Rasa deve ser executado **sempre dentro do venv Python 3.10**:
+
 ```bash
 cd ~/ros2_ws/src/cco_ia
 
-# Treinar o modelo NLU
+# Ative o ambiente virtual do Rasa
+source ~/venvs/rasa_env/bin/activate
+
+# Treinar o modelo NLU (necessário após qualquer alteração no nlu.yml)
 rasa train nlu
 
 # Iniciar o servidor NLU na porta 5005
 rasa run --enable-api --port 5005
+
+# Deixe este terminal aberto — o servidor precisa ficar rodando
 ```
 
 > O nó `No_Rasa.py` consome a API REST em `http://localhost:5005/model/parse`.
@@ -203,21 +227,29 @@ rasa run --enable-api --port 5005
 
 ## Execução
 
-Inicie cada nó em um terminal separado (após fazer `source install/setup.bash`):
+#### Terminal 1 — Servidor Rasa NLU (Python 3.10 — venv)
 
 ```bash
-# Terminal 1 — Reconhecimento de voz (PTT)
-ros2 run cco_ia vosk_node
-
-# Terminal 2 — Classificação de intenção (NLU)
-ros2 run cco_ia rasa_node
-
-# Terminal 3 — Geração de resposta (LLM)
-ros2 run cco_ia llm_node
-
-# Terminal 4 — Síntese de voz (TTS)
-ros2 run cco_ia fala_node
+cd ~/Downloads/IA
+source venv/bin/activate
+rasa run --enable-api
 ```
+
+> Deixe este terminal aberto. O servidor precisa ficar rodando enquanto os nós estiverem ativos.
+
+#### Terminal 2 — Todos os nós do sistema (Python 3.12 — ROS 2 Jazzy)
+
+```bash
+cd ~/Downloads/IA
+source /opt/ros/jazzy/setup.bash
+python3 No_Vosk.py &
+python3 No_Rasa.py &
+python3 No_LLM.py &
+python3 No_Fala.py &
+wait
+```
+
+> O `&` executa cada nó em background. O `wait` mantém o terminal aberto e aguarda todos os processos. Para encerrar tudo, pressione `Ctrl+C`.
 
 Ou utilize um arquivo `launch` para subir tudo de uma vez:
 

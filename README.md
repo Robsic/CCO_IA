@@ -112,8 +112,8 @@ O sistema é composto por **4 nós ROS 2** independentes que se comunicam exclus
 ## Pré-requisitos
 
 ### Sistema Operacional
-- Ubuntu 22.04 ou superior (testado)
-- ROS 2 Humble (ou Jazzy)
+- Ubuntu 24.04 (testado)
+- ROS 2 Jazzy
 
 ### ⚠️ Dois ambientes Python separados
 

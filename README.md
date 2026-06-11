@@ -1,4 +1,4 @@
-# CCO-IA — Central de Comando Inteligente para Mineração
+# CCO-IA — Central de Comando Inteligente para Mineração sudo do-release-upgrade
 
 > Sistema de comunicação por voz em tempo real para operadores de equipamentos pesados de mineração, utilizando reconhecimento de fala offline, NLU com Rasa e geração de resposta via LLM local (Ollama).
 

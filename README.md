@@ -38,31 +38,31 @@ Todo o processamento ocorre **100% localmente**, sem nenhuma dependência de ser
 
 ```
 [Microfone / Rádio PTT]
-        │
-        ▼
-  ┌─────────────┐     /fala_reconhecida      ┌─────────────┐
-  │  No_Vosk.py │ ──────────────────────────▶│ No_Rasa.py  │
-  │  (Vosk STT) │                            │ (Rasa NLU)  │
-  └─────────────┘                            └─────────────┘
-                                                    │
-                                         /resposta_rasa (JSON NLU)
-                                                    │
-                                                    ▼
-                                          ┌──────────────────┐
-                                          │   No_LLM.py      │
-                                          │ (Ollama / LLama) │
-                                          └──────────────────┘
-                                                    │
-                                          /resposta_bot (sentenças)
-                                                    │
-                                                    ▼
-                                          ┌──────────────────┐
-                                          │   No_Fala.py     │
-                                          │  (Silero TTS)    │
-                                          └──────────────────┘
-                                                    │
-                                                    ▼
-                                            [Alto-falante]
+        │
+        ▼
+  ┌─────────────┐     /fala_reconhecida      ┌─────────────┐
+  │  No_Vosk.py │ ──────────────────────────▶│ No_Rasa.py  │
+  │  (Vosk STT) │                            │ (Rasa NLU)  │
+  └─────────────┘                            └─────────────┘
+                                                    │
+                                         /resposta_rasa (JSON NLU)
+                                                    │
+                                                    ▼
+                                          ┌──────────────────┐
+                                          │   No_LLM.py      │
+                                          │ (Ollama / LLama) │
+                                          └──────────────────┘
+                                                    │
+                                          /resposta_bot (sentenças)
+                                                    │
+                                                    ▼
+                                          ┌──────────────────┐
+                                          │   No_Fala.py     │
+                                          │  (Silero TTS)    │
+                                          └──────────────────┘
+                                                    │
+                                                    ▼
+                                            [Alto-falante]
 ```
 
 O sistema é composto por **4 nós ROS 2** independentes que se comunicam exclusivamente via tópicos:
@@ -89,12 +89,12 @@ O sistema é composto por **4 nós ROS 2** independentes que se comunicam exclus
 
 ```json
 {
-  "texto_original": "temperatura do motor muito alta",
-  "intencao": "informar_problema_mecanico",
-  "confianca": 0.9731,
-  "entidades": [
-    { "entidade": "componente", "valor": "motor" }
-  ]
+  "texto_original": "temperatura do motor muito alta",
+  "intencao": "informar_problema_mecanico",
+  "confianca": 0.9731,
+  "entidades": [
+    { "entidade": "componente", "valor": "motor" }
+  ]
 }
 ```
 
@@ -102,8 +102,8 @@ O sistema é composto por **4 nós ROS 2** independentes que se comunicam exclus
 
 ```json
 {
-  "respostas": ["A oficina foi notificada sobre o superaquecimento do motor."],
-  "streaming": false
+  "respostas": ["A oficina foi notificada sobre o superaquecimento do motor."],
+  "streaming": false
 }
 ```
 
@@ -259,12 +259,12 @@ from launch import LaunchDescription
 from launch_ros.actions import Node
 
 def generate_launch_description():
-    return LaunchDescription([
-        Node(package='cco_ia', executable='vosk_node'),
-        Node(package='cco_ia', executable='rasa_node'),
-        Node(package='cco_ia', executable='llm_node'),
-        Node(package='cco_ia', executable='fala_node'),
-    ])
+    return LaunchDescription([
+        Node(package='cco_ia', executable='vosk_node'),
+        Node(package='cco_ia', executable='rasa_node'),
+        Node(package='cco_ia', executable='llm_node'),
+        Node(package='cco_ia', executable='fala_node'),
+    ])
 ```
 
 ```bash
@@ -307,15 +307,15 @@ O modelo Rasa foi treinado para reconhecer as seguintes intenções do motorista
 
 ```
 cco_ia/
-├── No_Vosk.py          # Nó STT — Vosk com controle PTT agressivo
-├── No_Rasa.py          # Nó NLU — cliente da API Rasa
-├── No_LLM.py           # Nó LLM — streaming via Ollama
-├── No_Fala.py          # Nó TTS — Silero neural offline
-├── config.yml          # Pipeline de NLU do Rasa
-├── domain.yml          # Domínio: intenções, entidades, slots
-├── nlu.yml             # Dados de treinamento NLU
-├── endpoints.yml       # Endpoints externos Rasa
-├── credentials.yml     # Canais do Rasa
+├── No_Vosk.py          # Nó STT — Vosk com controle PTT agressivo
+├── No_Rasa.py          # Nó NLU — cliente da API Rasa
+├── No_LLM.py           # Nó LLM — streaming via Ollama
+├── No_Fala.py          # Nó TTS — Silero neural offline
+├── config.yml          # Pipeline de NLU do Rasa
+├── domain.yml          # Domínio: intenções, entidades, slots
+├── nlu.yml             # Dados de treinamento NLU
+├── endpoints.yml       # Endpoints externos Rasa
+├── credentials.yml     # Canais do Rasa
 └── README.md
 ```
 

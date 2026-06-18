@@ -210,7 +210,7 @@ O Rasa deve ser executado **sempre dentro do venv Python 3.10**:
 cd ~/ros2_ws/src/cco_ia
 
 # Ative o ambiente virtual do Rasa
-source ~/venvs/rasa_env/bin/activate
+source ~/rasa_env/bin/activate
 
 # Treinar o modelo NLU (necessário após qualquer alteração no nlu.yml)
 rasa train nlu

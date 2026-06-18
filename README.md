@@ -230,7 +230,7 @@ rasa run --enable-api --port 5005
 #### Terminal 1 — Servidor Rasa NLU (Python 3.10 — venv)
 
 ```bash
-cd ~ /cco_ia
+cd ~/cco_ia
 source venv/bin/activate
 rasa run --enable-api
 ```

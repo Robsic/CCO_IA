@@ -163,7 +163,7 @@ pip3.12 install torch torchaudio sounddevice vosk requests ollama
 ```bash
 # Crie e ative o venv
 python3.10 -m venv ~/rasa_env
-source ~/venv/rasa_env/bin/activate
+source ~/rasa_env/bin/activate
 
 # Instale o Rasa e o modelo de linguagem
 pip install rasa

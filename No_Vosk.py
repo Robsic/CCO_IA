@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Vosk → /fala_reconhecida (Com corte PTT agressivo)
+# Vosk → /fala_reconhecida (Com corte PTT agressivo e proteção de Thread)
 
 import json
 import queue
@@ -21,6 +21,9 @@ class VoskNode(Node):
         self.pub = self.create_publisher(String, '/fala_reconhecida', 10)
         self.rec = KaldiRecognizer(Model('vosk-model-small-pt-0.3'), _SAMPLE_RATE)
         self.q = queue.Queue()
+        
+        # Lock (Trava) para evitar conflito entre o botão e o loop de áudio
+        self._vosk_lock = threading.Lock()
         
         self.ouvindo = False
         self.botao_estado = False
@@ -53,8 +56,10 @@ class VoskNode(Node):
         
         # Botão Pressionado -> Começa a gravar
         if novo_estado and not self.botao_estado:
-            self.rec.Reset()
+            with self._vosk_lock:
+                self.rec.Reset()
             self.ja_publicou = False
+            
             # Limpa qualquer lixo da fila instantaneamente usando mutex
             with self.q.mutex:
                 self.q.queue.clear()
@@ -70,26 +75,28 @@ class VoskNode(Node):
         self.botao_estado = novo_estado
 
     def _forcar_resultado_imediato(self):
-        # Processa o restinho da fila rápido
-        while not self.q.empty():
-            try:
-                self.rec.AcceptWaveform(self.q.get_nowait())
-            except queue.Empty:
-                break
+        # Trava o acesso ao Vosk para o Loop de Áudio não atrapalhar
+        with self._vosk_lock:
+            # Processa o restinho da fila rápido
+            while not self.q.empty():
+                try:
+                    self.rec.AcceptWaveform(self.q.get_nowait())
+                except queue.Empty:
+                    break
 
-        # Extrai o PartialResult (não espera o tempo de silêncio para dar FinalResult)
-        texto = json.loads(self.rec.PartialResult()).get('partial', '').strip()
-        
-        if not texto:
-            texto = json.loads(self.rec.FinalResult()).get('text', '').strip()
-
-        if texto:
-            self.get_logger().info(f'✅ Enviado (Corte PTT): "{texto}"')
-            self._publicar(texto)
-        else:
-            self.get_logger().info('❌ Nenhuma fala detectada.')
+            # Extrai o PartialResult (não espera o tempo de silêncio para dar FinalResult)
+            texto = json.loads(self.rec.PartialResult()).get('partial', '').strip()
             
-        self.rec.Reset()
+            if not texto:
+                texto = json.loads(self.rec.FinalResult()).get('text', '').strip()
+
+            if texto:
+                self.get_logger().info(f'✅ Enviado (Corte PTT): "{texto}"')
+                self._publicar(texto)
+            else:
+                self.get_logger().info('❌ Nenhuma fala detectada.')
+                
+            self.rec.Reset()
 
     def _loop_audio(self):
         while not self._parar.is_set():
@@ -101,14 +108,16 @@ class VoskNode(Node):
             if not self.ouvindo:
                 continue
 
-            # Se o Vosk detectar uma pausa natural ENQUANTO o botão ainda tá apertado
-            if self.rec.AcceptWaveform(data):
-                texto = json.loads(self.rec.Result()).get('text', '').strip()
-                if texto and not self.ja_publicou:
-                    self.get_logger().info(f'✅ Enviado (Pausa Natural): "{texto}"')
-                    self._publicar(texto)
-                    self.ja_publicou = True
-                    self.rec.Reset()
+            # Trava o acesso ao Vosk para garantir que o Botão Solto não resete o modelo no meio da leitura
+            with self._vosk_lock:
+                # Se o Vosk detectar uma pausa natural ENQUANTO o botão ainda tá apertado
+                if self.rec.AcceptWaveform(data):
+                    texto = json.loads(self.rec.Result()).get('text', '').strip()
+                    if texto and not self.ja_publicou:
+                        self.get_logger().info(f'✅ Enviado (Pausa Natural): "{texto}"')
+                        self._publicar(texto)
+                        self.ja_publicou = True
+                        self.rec.Reset()
 
     def _publicar(self, texto: str):
         m = String()

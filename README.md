@@ -121,8 +121,8 @@ O projeto usa **dois intérpretes Python distintos** por incompatibilidade de de
 
 | Ambiente | Versão | Usado por |
 |---|---|---|
-| **venv Rasa** | Python **3.10** | `No_Rasa.py` + servidor Rasa NLU |
-| **Sistema / ROS 2** | Python **3.12** | `No_Vosk.py`, `No_LLM.py`, `No_Fala.py` |
+| **venv Rasa** | Python **3.10** | servidor Rasa NLU |
+| **Sistema / ROS 2** | Python **3.12** | `No_Rasa.py`, `No_Vosk.py`, `No_LLM.py`, `No_Fala.py` |
 
 > O Rasa e suas dependências (spaCy, TensorFlow) exigem Python 3.10. Os demais nós rodam no Python 3.12 do sistema junto ao ROS 2.
 

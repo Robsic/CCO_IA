@@ -231,7 +231,7 @@ rasa run --enable-api --port 5005
 
 ```bash
 cd ~/cco_ia
-source venv/bin/activate
+source rasa_env/bin/activate
 rasa run --enable-api
 ```
 

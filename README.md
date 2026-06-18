@@ -230,7 +230,7 @@ rasa run --enable-api --port 5005
 #### Terminal 1 — Servidor Rasa NLU (Python 3.10 — venv)
 
 ```bash
-cd ~/Downloads/IA
+cd ~ /cco_ia
 source venv/bin/activate
 rasa run --enable-api
 ```
@@ -240,7 +240,7 @@ rasa run --enable-api
 #### Terminal 2 — Todos os nós do sistema (Python 3.12 — ROS 2 Jazzy)
 
 ```bash
-cd ~/Downloads/IA
+cd ~/cco_ia
 source /opt/ros/jazzy/setup.bash
 python3 No_Vosk.py &
 python3 No_Rasa.py &

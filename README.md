@@ -212,8 +212,8 @@ cd ~/ros2_ws/src/cco_ia
 # Ative o ambiente virtual do Rasa
 source ~/rasa_env/bin/activate
 
-# Treinar o modelo NLU (necessário após qualquer alteração no nlu.yml)
-rasa train nlu
+# Treinar o modelo (necessário após qualquer alteração no nlu.yml)
+rasa train
 
 # Iniciar o servidor NLU na porta 5005
 rasa run --enable-api --port 5005
@@ -313,10 +313,11 @@ cco_ia/
 ├── No_Fala.py          # Nó TTS — Silero neural offline
 ├── config.yml          # Pipeline de NLU do Rasa
 ├── domain.yml          # Domínio: intenções, entidades, slots
-├── nlu.yml             # Dados de treinamento NLU
 ├── endpoints.yml       # Endpoints externos Rasa
 ├── credentials.yml     # Canais do Rasa
-└── README.md
+├── README.md
+└── data/
+    └── nlu.yml         # Dados de treinamento NLU
 ```
 
 ---

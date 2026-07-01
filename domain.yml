@@ -12,6 +12,9 @@ intents:
   - informar_status_operacional
   - solicitar_ultrapassagem
   - informar_condicao_via
+  - solicitar_abastecimento
+  - informar_condicao_climatica
+  - solicitar_apoio_pista
 
 entities:
   - local
@@ -19,6 +22,14 @@ entities:
   - carga
   - status_carga
   - veiculo
+  - id_equipamento
+  - operador
+  - sintoma
+  - nivel_medida
+  - condicao_ambiental
+  - obstaculo_via
+  - tempo
+  - prioridade
 
 # Slots só são necessários se você for rastrear o contexto entre mensagens (o que é bom, mas opcional se o LLM fizer isso).
 slots:
@@ -27,3 +38,63 @@ slots:
     mappings:
       - type: from_entity
         entity: local
+  componente:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: componente
+  carga:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: carga
+  status_carga:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: status_carga
+  veiculo:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: veiculo
+  id_equipamento:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: id_equipamento
+  operador:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: operador
+  sintoma:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: sintoma
+  nivel_medida:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: nivel_medida
+  condicao_ambiental:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: condicao_ambiental
+  obstaculo_via:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: obstaculo_via
+  tempo:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: tempo
+  prioridade:
+    type: text
+    mappings:
+      - type: from_entity
+        entity: prioridade

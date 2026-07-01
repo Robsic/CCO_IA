@@ -1,0 +1,6 @@
+rasa_env/
+models/
+.rasa/
+*.zip
+vosk-model-small-pt-0.3/
+fala.wav

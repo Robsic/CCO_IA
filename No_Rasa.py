@@ -61,18 +61,14 @@ class RasaNode(Node):
         out.data = json.dumps(payload, ensure_ascii=False)
         self.pub.publish(out)
 
-        # Log limpo para não travar o terminal com I/O desnecessário
-        self.get_logger().info(f"NLU -> Intent: {payload['intencao']} | Entidades extraídas: {len(payload['entidades'])}")
-
-        # Impressão detalhada de intenção e entidades identificadas no terminal
+        # Log único com intenção, confiança e entidades identificadas
         entidades_str = ', '.join(
             f"{e['entidade']}={e['valor']}" for e in payload['entidades']
         ) if payload['entidades'] else "Nenhuma"
-        print(
-            f"[NLU] Texto: \"{payload['texto_original']}\" | "
+        self.get_logger().info(
+            f"NLU -> Texto: \"{payload['texto_original']}\" | "
             f"Intenção: {payload['intencao']} (confiança: {payload['confianca']}) | "
-            f"Entidades: {entidades_str}",
-            flush=True
+            f"Entidades: {entidades_str}"
         )
 
 

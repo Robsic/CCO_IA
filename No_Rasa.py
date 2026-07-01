@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 # /fala_reconhecida → Rasa NLU API → publica intenções/entidades em '/resposta_rasa'
 import json
+import threading
 import rclpy
 import requests
 from rclpy.node import Node
@@ -8,6 +9,7 @@ from std_msgs.msg import String
 
 URL_NLU = 'http://localhost:5005/model/parse'
 TIMEOUT_S = 5
+DEBOUNCE_S = 0.6  # tempo de espera sem novas mensagens antes de processar
 
 
 class RasaNode(Node):
@@ -16,6 +18,8 @@ class RasaNode(Node):
         self.pub = self.create_publisher(String, '/resposta_rasa', 10)
         # O requests.Session() reutiliza o túnel TCP, acelerando a comunicação local
         self.sess = requests.Session()
+        self._debounce_lock = threading.Lock()
+        self._debounce_timer = None
         self.create_subscription(String, '/fala_reconhecida', self._cb, 10)
         self.get_logger().info('Nó Rasa NLU iniciado.')
 
@@ -23,6 +27,18 @@ class RasaNode(Node):
         texto = msg.data.strip()
         if not texto:
             return
+
+        # Debounce: cada nova transcrição reinicia o temporizador.
+        # Só processamos o texto quando ficar DEBOUNCE_S sem novas mensagens,
+        # evitando disparar o NLU várias vezes para transcrições parciais.
+        with self._debounce_lock:
+            if self._debounce_timer is not None:
+                self._debounce_timer.cancel()
+            self._debounce_timer = threading.Timer(DEBOUNCE_S, self._processar, args=(texto,))
+            self._debounce_timer.daemon = True
+            self._debounce_timer.start()
+
+    def _processar(self, texto: str):
         try:
             resp = self.sess.post(URL_NLU, json={'text': texto}, timeout=TIMEOUT_S)
             resp.raise_for_status()

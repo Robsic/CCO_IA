@@ -1,4 +1,4 @@
-#Aqui ensinará o Rasa a entender o que o motorista está dizendo.
+# Aqui ensinará o Rasa a entender o que o motorista está a dizer.
 version: "3.1"
 
 nlu:
@@ -9,6 +9,13 @@ nlu:
       - central na escuta
       - rádio teste
       - bom dia central
+      - QAP, central.
+      - Central de despacho na escuta?
+      - CCO, bom dia.
+      - Teste de rádio, um dois.
+      - Alguém copiando na frequência?
+      - Operador do caminhão [zero cinco](id_equipamento) chamando.
+      - Na escuta.
 
   - intent: confirmar_entendimento
     examples: |
@@ -19,6 +26,14 @@ nlu:
       - entendido central
       - em deslocamento
       - a caminho
+      - Copiado.
+      - Positivo, central.
+      - Afirmativo.
+      - TKS, câmbio.
+      - Entendido, prosseguindo.
+      - Tudo certo por aqui.
+      - Ciente da instrução.
+      - A caminho.
 
   - intent: informar_emergencia
     examples: |
@@ -29,15 +44,23 @@ nlu:
       - tombamento na rampa
       - rádio comunicou incidente na frente
       - homem caído na pista
+      - [Emergência](prioridade), [emergência](prioridade) na [rampa principal](local)!
+      - [Risco de desmoronamento](sintoma) na [praça](local)!
+      - [Acidente](sintoma) com [veículo leve](veiculo) na via.
+      - [Tombamento](sintoma) de [caminhão](veiculo), [socorro](prioridade)!
+      - Operador passando mal na cabine.
 
   - intent: informar_emergencia_incendio
     examples: |
-      - fogo no equipamento
-      - fogo no compartimento do motor
-      - fogo na roda dianteira
-      - caminhão à frente pegando fogo
-      - princípio de incêndio na cabine
-      - muita fumaça saindo do motor
+      - fogo no [equipamento](veiculo)
+      - fogo no compartimento do [motor](componente)
+      - fogo na [roda](componente) dianteira
+      - [caminhão](veiculo) à frente pegando fogo
+      - princípio de incêndio na [cabine](componente)
+      - muita fumaça saindo do [motor](componente)
+      - o [caminhão](veiculo) está pegando fogo o que devo fazer
+      - [caminho](veiculo) pegando fogo
+      - fogo no equipamento, fogo no [motor](componente)!
 
   - intent: solicitar_basculamento
     examples: |
@@ -48,6 +71,14 @@ nlu:
       - pronto para bascular
       - onde posso descarregar o [minério](carga)?
       - carregado com [carvão](carga), aguardando liberação.
+      - Solicito permissão para bascular no [britador](local).
+      - Chegando na [pilha de estéril](local), posso descarregar?
+      - Pronto para báscula.
+      - Autorização para jogar a [carga](carga).
+      - Caminhão [cheio](status_carga), onde é o descarte?
+      - Tô na fila do [britador um](local), aguardando liberação.
+      - Qual a praça de descarregamento de [minério](carga)?
+      - Posso levantar a caçamba aqui na [pilha sul](local)?
 
   - intent: solicitar_carregamento
     examples: |
@@ -55,6 +86,13 @@ nlu:
       - na fila da [carregadeira](local)
       - aguardando carregamento na [frente de lavra](local)
       - qual o destino para carga?
+      - Caminhão [vazio](status_carga), indo para a [escavadeira](local).
+      - Aguardando carga na [frente de lavra](local).
+      - Na fila da [carregadeira gigante](local).
+      - Qual o destino para o próximo carregamento?
+      - Estou posicionado sob a [escavadeira](local).
+      - Chegando na praça de carga.
+      - [Vazio](status_carga) e operando, pra onde eu vou?
 
   - intent: informar_falha_critica
     examples: |
@@ -64,6 +102,7 @@ nlu:
       - aviso de tensão do sistema alta
       - aviso de tensão do sistema baixa
       - caminhão não obedece o comando de parar
+      - [perdi](sintoma) o [freio](componente), caminhão sem [freio](componente)!
 
   - intent: informar_problema_mecanico
     examples: |
@@ -88,6 +127,15 @@ nlu:
       - [farol](componente) falhou e apagou tudo
       - [retardador automático](componente) parou de funcionar
       - [pneu](componente) traseiro furado
+      - O caminhão tá [perdendo força](sintoma) na [rampa](local).
+      - Acho que [furou](sintoma) o [pneu](componente) traseiro.
+      - Temperatura do [motor](componente) [subiu demais](nivel_medida), tá [fervendo](sintoma).
+      - Deu [falha elétrica](sintoma) no [painel](componente) aqui.
+      - [Vazamento](sintoma) de [óleo hidráulico](componente) na [direção](componente).
+      - A [suspensão](componente) tá [batendo muito](sintoma).
+      - Preciso da equipe de manutenção na [pista dois](local).
+      - [Ar condicionado](componente) [parou de funcionar](sintoma).
+      - O [rádio](componente) tá com muito [chiado](sintoma), tá difícil copiar.
 
   - intent: informar_status_operacional
     examples: |
@@ -97,6 +145,12 @@ nlu:
       - parando para refeição
       - finalizando turno, indo para o pátio
       - parada de comboio
+      - Parando o equipamento para horário de almoço.
+      - Iniciando o turno de serviço.
+      - Indo para o [posto de combustível](local) abastecer.
+      - Caminhão em comboio, aguardando a pista liberar.
+      - Finalizando o turno, levando o caminhão pro [pátio](local).
+      - Parada para troca de turno.
 
   - intent: solicitar_ultrapassagem
     examples: |
@@ -114,3 +168,38 @@ nlu:
       - poeira excessiva vindo do caminhão à frente
       - [veículo leve](veiculo) parado em local de despejo
       - muita poeira, está perigoso
+
+  - intent: solicitar_abastecimento
+    examples: |
+      - solicitar permissão para abastecer
+      - nível de combustível na reserva
+      - autorização para ir ao posto
+      - caminhão precisa de diesel
+      - indo abastecer o [caminhão](veiculo)
+
+  - intent: informar_condicao_climatica
+    examples: |
+      - começou a chover muito forte
+      - neblina densa na área, visibilidade zero
+      - alerta de raios na frente de lavra
+      - chuva forte, pista perigosa
+
+  - intent: solicitar_apoio_pista
+    examples: |
+      - rampa escorregadia, enviar [motoniveladora](veiculo)
+      - patinando na subida, preciso de trator de apoio
+      - solicitar caminhão pipa, muita poeira na via
+      - pista ruim, mandar equipamento para nivelar
+      - rampa escorregadia, enviar [motoniveladora](veiculo)
+      - patinando na subida, preciso de trator de apoio
+      - solicitar [caminhão pipa](veiculo), muita [poeira](obstaculo_via) na via
+      - mandar o [pipa](veiculo) para baixar a poeira
+      - [carro pipa](veiculo) necessário na [frente de lavra](local)
+      - pista ruim, mandar equipamento para nivelar
+
+  # --- MAPEAMENTO DE SINÔNIMOS ---
+  - synonym: caminhão pipa
+    examples: |
+      - pipa
+      - carro pipa
+      - caminhão de água

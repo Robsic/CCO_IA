@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
 # '/resposta_rasa' (JSON NLU) → Ollama streaming → publica sentenças em '/resposta_bot'
+import fcntl
 import json
 import re
+import sys
 import threading
 import ollama
 import rclpy
@@ -11,6 +13,18 @@ from std_msgs.msg import String
 MODELO_LLM = 'llama3.2:1b'
 MAX_HISTORICO = 2
 _RE_SENTENCA = re.compile(r'(?<=[.!?])\s+')
+LOCK_FILE = '/tmp/llm_node.lock'
+
+
+def garantir_instancia_unica():
+    """Impede que mais de um processo llm_node rode ao mesmo tempo."""
+    lock_fd = open(LOCK_FILE, 'w')
+    try:
+        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        print('[llm_node] Já existe uma instância rodando. Encerrando este processo.', flush=True)
+        sys.exit(1)
+    return lock_fd  # manter referência viva enquanto o processo rodar
 
 # --- PROMPT ATUALIZADO COM AS NOVAS INTENÇÕES ---
 SYSTEM_PROMPT = """Você é a central de comando (CCO) auxiliando o motorista de um equipamento de mineração via rádio.
@@ -144,6 +158,7 @@ class LLMNode(Node):
 
 
 def main(args=None):
+    _lock_fd = garantir_instancia_unica()
     rclpy.init(args=args)
     node = LLMNode()
     try:

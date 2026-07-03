@@ -1,9 +1,6 @@
 #!/usr/bin/env python3
-# '/resposta_rasa' (JSON NLU) → Ollama streaming → publica sentenças em '/resposta_bot'
-import fcntl
+# '/resposta_rasa' (JSON NLU) → Ollama → publica UMA ÚNICA resposta em '/resposta_bot'
 import json
-import re
-import sys
 import threading
 import ollama
 import rclpy
@@ -11,154 +8,123 @@ from rclpy.node import Node
 from std_msgs.msg import String
 
 MODELO_LLM = 'llama3.2:1b'
-MAX_HISTORICO = 2
-_RE_SENTENCA = re.compile(r'(?<=[.!?])\s+')
-LOCK_FILE = '/tmp/llm_node.lock'
+MAX_HISTORICO = 1  # Reduzido para 1 para evitar que ele se confunda com o passado em emergências
 
+# Prompt super limpo e direto, sem exemplos que possam confundir o modelo
+SYSTEM_PROMPT = """Você é a central de comando (CCO) falando no rádio com o motorista do equipamento.
+Regras:
+- Fale em português brasileiro natural.
+- Seja extremamente conciso. Use no máximo duas frases curtas.
+- Responda APENAS com a fala que será transmitida no rádio. Não adicione comentários, explicações ou notas."""
 
-def garantir_instancia_unica():
-    """Impede que mais de um processo llm_node rode ao mesmo tempo."""
-    lock_fd = open(LOCK_FILE, 'w')
-    try:
-        fcntl.flock(lock_fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-    except BlockingIOError:
-        print('[llm_node] Já existe uma instância rodando. Encerrando este processo.', flush=True)
-        sys.exit(1)
-    return lock_fd  # manter referência viva enquanto o processo rodar
-
-# --- PROMPT ATUALIZADO COM AS NOVAS INTENÇÕES ---
-SYSTEM_PROMPT = """Você é a central de comando (CCO) auxiliando o motorista de um equipamento de mineração via rádio.
-Você receberá a intenção detectada pelo sistema e os detalhes (entidades).
-Sua função é gerar uma resposta clara, natural e concisa para o motorista.
-Regras de Conduta:
-- Responda SEMPRE em português brasileiro.
-- Máximo 2 frases curtas.
-- Tom direto, profissional e focado em segurança.
-- Não use markdown ou emojis. Apenas texto para ser falado.
-Guia de Ação por Intenção:
-- solicitar_basculamento / solicitar_carregamento: Autorize o deslocamento para o local informado.
-- informar_emergencia / informar_emergencia_incendio / informar_falha_critica: Ordene parada imediata e acionamento de protocolo de segurança.
-- informar_problema_mecanico: Avise que a oficina foi notificada sobre o componente.
-- saudacao_radio: Diga que a CCO está na escuta.
-- solicitar_abastecimento: Autorize o deslocamento ao posto de combustível.
-- informar_condicao_climatica: Oriente atenção redobrada na via e registre a condição.
-- solicitar_apoio_pista: Confirme que o equipamento de apoio (motoniveladora, caminhão pipa, etc.) será enviado."""
-
+# O Python decide o que o LLM deve fazer, escondendo o nome técnico da intenção
+GUIA_DE_ACOES = {
+    'solicitar_basculamento': 'Autorize o deslocamento para o local de basculamento informado.',
+    'solicitar_carregamento': 'Autorize o deslocamento para o local de carregamento informado.',
+    'informar_emergencia': 'Ordene a parada imediata do equipamento e o acionamento do protocolo de segurança.',
+    'informar_emergencia_incendio': 'Ordene a evacuação, a parada do equipamento e o acionamento do protocolo contra incêndios.',
+    'informar_falha_critica': 'Ordene a parada imediata do equipamento para evitar acidentes.',
+    'informar_problema_mecanico': 'Avise que a manutenção/oficina já foi notificada sobre o problema.',
+    'saudacao_radio': 'Responda brevemente que a CCO está na escuta e pronta para apoiar.',
+    'solicitar_abastecimento': 'Autorize o deslocamento do equipamento até o posto de combustível.',
+    'informar_condicao_climatica': 'Agradeça a informação e oriente que o motorista tenha atenção redobrada na via.',
+    'solicitar_apoio_pista': 'Confirme que o equipamento de apoio solicitado já está a caminho.'
+}
 
 class LLMNode(Node):
     def __init__(self):
         super().__init__('llm_node')
         self._historico = []
         self._lock = threading.Lock()
+        self._processando = False 
+        
         self.pub = self.create_publisher(String, '/resposta_bot', 10)
         self.create_subscription(String, '/resposta_rasa', self._cb, 10)
 
         self.get_logger().info(f'Nó Ollama iniciado ({MODELO_LLM}). Aguardando em /resposta_rasa...')
 
     def _cb(self, msg: String):
+        with self._lock:
+            if self._processando:
+                self.get_logger().warn('Mensagem ignorada: o LLM já está gerando uma resposta.')
+                return
+            self._processando = True  
+
         try:
             dados = json.loads(msg.data)
+            texto_original = dados.get('texto_original', '')
+            intencao = dados.get('intencao', '')
+            entidades = dados.get('entidades', [])
+            
+            threading.Thread(
+                target=self._gerar_resposta,
+                args=(texto_original, intencao, entidades),
+                daemon=True,
+            ).start()
+            
         except json.JSONDecodeError as e:
             self.get_logger().error(f'JSON inválido: {e}')
-            return
+            with self._lock:
+                self._processando = False
 
-        texto_original = dados.get('texto_original', '')
-        intencao = dados.get('intencao', '')
-        confianca = dados.get('confianca', 0.0)
-        entidades = dados.get('entidades', [])
-
-        threading.Thread(
-            target=self._stream_llm,
-            args=(texto_original, intencao, confianca, entidades),
-            daemon=True,
-        ).start()
-
-    def _stream_llm(self, texto_original, intencao, confianca, entidades):
-        ents_str = ', '.join(
-            f"{e.get('entidade')}={e.get('valor')}" for e in entidades
-        ) if entidades else "Nenhuma"
-
-        prompt_llm = (
-            f"O motorista disse: '{texto_original}'\n"
-            f"Intenção detectada pelo sistema: {intencao} (confiança: {confianca})\n"
-            f"Dados (entidades) detectadas: {ents_str}\n"
-            "Gere a resposta da CCO para o motorista no rádio."
-        )
-
-        with self._lock:
-            self._historico.append({'role': 'user', 'content': prompt_llm})
-            if len(self._historico) > MAX_HISTORICO * 2:
-                self._historico[:] = self._historico[-(MAX_HISTORICO * 2):]
-            historico_snapshot = list(self._historico)
-
-        buffer = ''
-        texto_completo = ''
-
+    def _gerar_resposta(self, texto_original, intencao, entidades):
         try:
-            # keep_alive=-1 impede que o modelo seja descarregado da RAM após ociosidade
-            stream = ollama.chat(
+            ents_str = ', '.join(f"{e.get('valor')}" for e in entidades) if entidades else "nenhum detalhe específico"
+            
+            # Pega a instrução mastigada em português, sem nomes técnicos
+            instrucao_cco = GUIA_DE_ACOES.get(intencao, 'Responda ao que o motorista disse de forma breve.')
+
+            # O prompt de usuário agora dá uma ordem claríssima do que fazer
+            prompt_llm = (
+                f"O motorista informou: '{texto_original}' (Detalhes: {ents_str})\n"
+                f"Sua tarefa: {instrucao_cco}\n"
+                "Escreva agora a sua resposta para o rádio:"
+            )
+
+            with self._lock:
+                self._historico.append({'role': 'user', 'content': prompt_llm})
+                if len(self._historico) > MAX_HISTORICO * 2:
+                    self._historico[:] = self._historico[-(MAX_HISTORICO * 2):]
+                historico_snapshot = list(self._historico)
+
+            resposta = ollama.chat(
                 model=MODELO_LLM,
                 messages=[{'role': 'system', 'content': SYSTEM_PROMPT}, *historico_snapshot],
-                stream=True,
+                stream=False,
                 keep_alive=-1,
                 options={
-                    'num_gpu': 0,  # DESLIGA A PLACA DE VÍDEO
-                    'temperature': 0.4,
-                    'num_predict': 80,
-                    'num_ctx': 512
+                    'num_gpu': 0,
+                    'temperature': 0.1,  
+                    'num_predict': 80, 
+                    'num_ctx': 512,
+                    'stop': ['\n', 'Motorista:', 'CCO:', 'Sua tarefa:'] # Para na primeira quebra de linha
                 }
             )
 
-            for chunk in stream:
-                token = chunk.get('message', {}).get('content', '')
-                if not token:
-                    continue
-                buffer += token
-                texto_completo += token
+            texto_completo = resposta.get('message', {}).get('content', '').replace('"', '').strip()
 
-                partes = _RE_SENTENCA.split(buffer)
-                if len(partes) > 1:
-                    for sentenca in partes[:-1]:
-                        sentenca = sentenca.strip()
-                        if sentenca:
-                            self._publicar_sentenca(sentenca, streaming=True)
-                    buffer = partes[-1]
-
-            buffer = buffer.strip()
-            if buffer:
-                self._publicar_sentenca(buffer, streaming=False)
-
-            texto_completo = texto_completo.strip()
-
-            # --- IMPRESSÃO DA RESPOSTA COMPLETA GERADA PELO LLM ---
             if texto_completo:
                 self.get_logger().info(f'[LLM] Resposta gerada: "{texto_completo}"')
-                print(f'[LLM] Resposta gerada: "{texto_completo}"', flush=True)
-
                 with self._lock:
                     self._historico.append({'role': 'assistant', 'content': texto_completo})
+                self._publicar_resposta(texto_completo)
             else:
-                self.get_logger().warn('[LLM] Stream retornou vazio, nenhuma resposta gerada.')
+                self.get_logger().warn('[LLM] Resposta vazia.')
 
         except Exception as e:
-            self.get_logger().error(f'Erro no stream do LLM: {e}')
-            self._publicar_sentenca("Falha no sistema de comunicação. Repita.", streaming=False)
+            self.get_logger().error(f'Erro ao consultar o LLM: {e}')
+        
+        finally:
+            with self._lock:
+                self._processando = False
 
-    def _publicar_sentenca(self, sentenca: str, streaming: bool):
-        payload = {
-            'respostas': [sentenca],
-            'streaming': streaming
-        }
+    def _publicar_resposta(self, texto: str):
+        payload = {'respostas': [texto], 'streaming': False}
         out = String()
         out.data = json.dumps(payload, ensure_ascii=False)
         self.pub.publish(out)
 
-        # Log de cada sentença publicada (útil para acompanhar o streaming)
-        self.get_logger().info(f'[LLM] Publicado em /resposta_bot: "{sentenca}"')
-
-
 def main(args=None):
-    _lock_fd = garantir_instancia_unica()
     rclpy.init(args=args)
     node = LLMNode()
     try:
@@ -168,7 +134,6 @@ def main(args=None):
     finally:
         node.destroy_node()
         rclpy.shutdown()
-
 
 if __name__ == '__main__':
     main()

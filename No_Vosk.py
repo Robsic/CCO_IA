@@ -138,7 +138,7 @@ class VoskNode(Node):
     def _publicar(self, texto: str):
         if not self.evento_ativo:
             self.get_logger().warn("Fala bloqueada: nenhum evento ativo no momento.")
-            #Mandar para o nó de fala direto
+           
             return
         payload = {
             'fala'  : texto,

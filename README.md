@@ -83,6 +83,7 @@ A arquitetura valida a coerência da fala logo no nó do Rasa. Se o relato do op
           ▼
    [Alto-falante]
 
+
 ```
 
 O sistema é composto por **4 nós ROS 2** independentes que se comunicam exclusivamente via tópicos:
@@ -120,6 +121,7 @@ O sistema é composto por **4 nós ROS 2** independentes que se comunicam exclus
   "coerente": true
 }
 
+
 ```
 
 ### Exemplo de payload `/resposta_bot`
@@ -129,6 +131,7 @@ O sistema é composto por **4 nós ROS 2** independentes que se comunicam exclus
   "respostas": ["A central CCO copiou a sua mensagem. Por favor, estacione em local seguro, desligue o motor e aguarde a equipe de manutenção."],
   "streaming": false
 }
+
 
 ```
 
@@ -173,6 +176,7 @@ mkdir -p ~/cco_ia
 cd ~/cco_ia
 # Clone ou mova os arquivos do repositório para esta pasta
 
+
 ```
 
 ### 2. Instalar dependências no Python 3.12 (Sistema/ROS 2)
@@ -181,6 +185,7 @@ Estas bibliotecas darão suporte aos nós do Vosk, do cliente Rasa, do Ollama e 
 
 ```bash
 pip3 install torch torchaudio sounddevice vosk requests ollama
+
 
 ```
 
@@ -199,6 +204,7 @@ python -m spacy download pt_core_news_sm
 
 deactivate
 
+
 ```
 
 ### 4. Baixar o Modelo Acústico Offline do Vosk
@@ -208,6 +214,7 @@ cd ~/cco_ia
 wget [https://alphacephei.com/vosk/models/vosk-model-small-pt-0.3.zip](https://alphacephei.com/vosk/models/vosk-model-small-pt-0.3.zip)
 unzip vosk-model-small-pt-0.3.zip
 
+
 ```
 
 ### 5. Instalar o Ollama e baixar o Modelo LLM
@@ -216,6 +223,7 @@ Siga o guia de instalação oficial em [ollama.com](https://ollama.com) e depois
 
 ```bash
 ollama pull llama3.2:1b
+
 
 ```
 
@@ -247,28 +255,38 @@ source rasa_env/bin/activate
 rasa train
 deactivate
 
+
 ```
 
 ---
 
 ## Execução e Testes
 
-Para inicializar todos os módulos, validar a coerência e simular as transmissões de rádio do operador, execute os passos abaixo em terminais ou abas diferentes.
+Antes de iniciar qualquer teste, é fundamental garantir que não existam processos antigos travando o microfone, as portas ou a memória.
+
+#### Passo 0 — Limpar processos em background
+
+Abra o terminal e force a parada de qualquer processo Python concorrente que tenha ficado aberto sem você saber:
+
+```bash
+pkill -f python3
+
+
+```
 
 #### Terminal 1 — Iniciar Servidor Rasa NLU (Python 3.10 — venv)
 
 ```bash
 cd ~/cco_ia
 source rasa_env/bin/activate
-rasa run --enable-api --port 5005
+rasa run --enable-api
+
 
 ```
 
-> *Deixe este terminal aberto. O servidor precisa estar ativo para responder às requisições HTTP do nó cliente.*
+> *Deixe este terminal aberto. O servidor precisa estar ativo para responder às requisições HTTP.*
 
 #### Terminal 2 — Inicializar os Nós ROS 2 (Python 3.12 — ROS 2 Jazzy)
-
-Você pode subir os nós individualmente em background:
 
 ```bash
 cd ~/cco_ia
@@ -279,44 +297,21 @@ python3 No_LLM.py &
 python3 No_Fala.py &
 wait
 
-```
-
-> *Nota: O caractere `&` joga a execução de cada nó para o background e o comando `wait` segura o terminal ativo. Pressione `Ctrl+C` para encerrar todos de uma vez.*
-
-**Alternativa via Launch File (Se o projeto estiver estruturado como pacote ROS 2):**
-Se preferir usar o padrão de automação do ROS 2, utilize um arquivo de inicialização:
-
-```python
-# launch/cco_ia.launch.py
-from launch import LaunchDescription
-from launch_ros.actions import Node
-
-def generate_launch_description():
-    return LaunchDescription([
-        Node(package='cco_ia', executable='vosk_node'),
-        Node(package='cco_ia', executable='rasa_node'),
-        Node(package='cco_ia', executable='llm_node'),
-        Node(package='cco_ia', executable='fala_node'),
-    ])
 
 ```
 
-Execute utilizando:
-
-```bash
-ros2 launch cco_ia cco_ia.launch.py
-
-```
+> *O caractere `&` joga a execução de cada nó para o background e o comando `wait` segura o terminal ativo. Pressione `Ctrl+C` para encerrar todos de uma vez.*
 
 #### Terminal 3 — Simular o acionamento do Rádio (Botão PTT) e Simulação de Eventos
 
-Para validar o fluxo, envie um evento ativo para o sistema e simule os comandos do botão de rádio:
+Para validar o fluxo, envie um evento ativo para o sistema e simule os comandos do botão de rádio, execute um comando por vez:
 
 ```bash
+cd ~/cco_ia
 source /opt/ros/jazzy/setup.bash
 
-# 1. Simula a ocorrência de um evento do supervisório (ex: Fogo no Motor - ID 35)
-ros2 topic pub --once /eventos std_msgs/msg/String "{data: '{\"id\": 35, \"nome\": \"Fogo no motor\"}'}"
+# 1. Simula a ocorrência de um evento do supervisório
+ros2 topic pub --once /eventos std_msgs/msg/String "{data: '{\"id\": 00, \"nome\": \"Nome do evento\"}'}"
 
 # 2. Pressiona o botão PTT (Inicia captação de áudio pelo microfone)
 ros2 topic pub --once /botao_acionado std_msgs/msg/Int8 "{data: 1}"
@@ -325,6 +320,60 @@ ros2 topic pub --once /botao_acionado std_msgs/msg/Int8 "{data: 1}"
 
 # 4. Solta o botão PTT (Envia o áudio gravado para a pipeline de análise)
 ros2 topic pub --once /botao_acionado std_msgs/msg/Int8 "{data: 0}"
+
+
+```
+
+Abaixo estão exemplos prontos com **eventos habilitados** para testar o sistema:
+
+**Exemplo A: Testando o evento "Fogo no Motor" (ID 35)**
+
+```bash
+# 1. Ativa o evento no sistema
+ros2 topic pub --once /eventos std_msgs/msg/String "{data: '{\"id\": 35, \"nome\": \"Fogo no motor\"}'}"
+
+# 2. Pressiona o botão PTT (Inicia captação de áudio)
+ros2 topic pub --once /botao_acionado std_msgs/msg/Int8 "{data: 1}"
+
+# 3. ---> FALE NO MICROFONE: "CCO, emergência, fogo no motor!" <---
+
+# 4. Solta o botão PTT (Envia o áudio gravado para análise)
+ros2 topic pub --once /botao_acionado std_msgs/msg/Int8 "{data: 0}"
+
+
+```
+
+**Exemplo B: Testando o evento "Falha na Direção" (ID 27)**
+
+```bash
+# 1. Ativa o evento no sistema
+ros2 topic pub --once /eventos std_msgs/msg/String "{data: '{\"id\": 27, \"nome\": \"Falha na direção\"}'}"
+
+# 2. Pressiona o botão PTT
+ros2 topic pub --once /botao_acionado std_msgs/msg/Int8 "{data: 1}"
+
+# 3. ---> FALE NO MICROFONE: "Central, perdi a direção do caminhão." <---
+
+# 4. Solta o botão PTT
+ros2 topic pub --once /botao_acionado std_msgs/msg/Int8 "{data: 0}"
+
+
+```
+
+**Exemplo C: Testando o evento "Nível de combustível baixo" (ID 10)**
+
+```bash
+# 1. Ativa o evento no sistema
+ros2 topic pub --once /eventos std_msgs/msg/String "{data: '{\"id\": 10, \"nome\": \"Nível de combustível baixo\"}'}"
+
+# 2. Pressiona o botão PTT
+ros2 topic pub --once /botao_acionado std_msgs/msg/Int8 "{data: 1}"
+
+# 3. ---> FALE NO MICROFONE: "Estou ficando sem diesel na rampa." <---
+
+# 4. Solta o botão PTT
+ros2 topic pub --once /botao_acionado std_msgs/msg/Int8 "{data: 0}"
+
 
 ```
 
@@ -372,16 +421,35 @@ Abaixo estão listados os eventos cadastrados no aplicativo supervisório e cons
 | --- | --- | --- | --- | --- |
 | **0** | Falha no sistema de carga da bateria | O indicador de falha do sistema de carga da bateria está aceso. | Pare a máquina. Aplique o freio de estacionamento. Desligue o motor. Peça assistência pelo rádio. | **Sim** |
 | **1** | Falha de freio | O sistema de mensagens exibe aviso de pressão de ar do retardador. | Pare a máquina. Use retardador para desacelerar, aplique freio de estacionamento e peça ajuda. | **Não** |
+| **3** | Pára-brisas quebrado | O pára-brisas dianteiro fica gravemente danificado quando atingido por projétil. | Pare a máquina completamente. Desligue o motor. Aplique o freio de estacionamento. Peça assistência. | **Não** |
+| **4** | Nível do líquido de arrefecimento baixo | O sistema de mensagens exibe o aviso de nível de líquido de arrefecimento baixo. | Pare a máquina completamente. Selecione "Park/Estacionamento". Peça assistência pelo rádio. | **Não** |
 | **6** | Rádio comunica incidente de emergência | Incidente de emergência não visível transmitido pelo rádio. | Pare a máquina, aplique freio e mantenha rádio em silêncio. | **Não** |
+| **7** | Falha do motor | O sistema de mensagens exibe um erro de controle do motor. | Pare a máquina completamente. Aplique o freio de estacionamento. Peça assistência pelo rádio. | **Não** |
+| **8** | Nível de óleo do motor baixo | O sistema de mensagens exibe um aviso de nível baixo de óleo do motor. | Pare a máquina completamente. Aplique o freio de estacionamento. Desligue o motor. Peça assistência. | **Não** |
+| **9** | Filtro de combustível obstruído | O sistema de mensagens exibe um aviso de obstrução do filtro de combustível. | Faça uma chamada de serviço pelo rádio. | **Não** |
 | **10** | Nível de combustível baixo | Aviso de nível baixo de combustível. Medidor na zona baixa. | Pare a máquina completamente, aplique freio e peça ajuda. | **Sim** |
+| **24** | *[Mapeado no CCO-IA]* | *Referente à falha crítica ou mecânica na simulação.* | *Ação de parada ou comunicação via rádio.* | **-** |
+| **25** | *[Mapeado no CCO-IA]* | *Referente à falha mecânica na simulação.* | *Ação de comunicação via rádio.* | **-** |
+| **26** | *[Mapeado no CCO-IA]* | *Referente à falha crítica na simulação.* | *Ação de parada imediata e comunicação.* | **-** |
 | **27** | Falha na direção | O caminhão não responde ao comando da direção. | Pare a máquina completamente, aplique freio de estacionamento e comunique. | **Sim** |
 | **28** | Tensão do sistema alta | Sistema de mensagens exibe aviso de alta tensão. | Pare a máquina, desligue o motor e peça assistência. | **Sim** |
 | **29** | Tensão do sistema baixa | Sistema de mensagens exibe aviso de baixa tensão. | Pare a máquina, desligue o motor e peça assistência. | **Sim** |
+| **31** | *[Mapeado no CCO-IA]* | *Evento logístico/climático suportado pelo NLU.* | *Reportar situação via rádio.* | **-** |
 | **32** | Parada abrupta do caminhão à frente | Caminhão à frente para abruptamente e comunica emergência. | Pare rapidamente, mantenha distância segura e responda via rádio. | **Não** |
 | **35** | Fogo no motor | Fogo e fumaça visíveis do compartimento do motor. | Pare a máquina, ative supressão de incêndio, desligue o motor e comunique. | **Sim** |
+| **36** | *[Mapeado no CCO-IA]* | *Evento logístico/climático suportado pelo NLU.* | *Reportar situação via rádio.* | **-** |
 | **37** | Fogo na roda | Fogo e fumaça visíveis da roda dianteira esquerda. | Pare a máquina, aplique freio, desligue o motor e peça assistência. | **Sim** |
+| **39** | *[Mapeado no CCO-IA]* | *Evento logístico/climático suportado pelo NLU.* | *Reportar situação via rádio.* | **-** |
 | **40** | Poeira | Visibilidade reduzida devido ao excesso de poeira na área. | Pare a máquina, desligue o motor e informe a situação usando o rádio. | **Não** |
+| **41** | *[Mapeado no CCO-IA]* | *Evento logístico/climático suportado pelo NLU.* | *Reportar situação via rádio.* | **-** |
+| **42** | *[Mapeado no CCO-IA]* | *Evento logístico/climático suportado pelo NLU.* | *Reportar situação via rádio.* | **-** |
+| **44** | *[Mapeado no CCO-IA]* | *Evento de logística na via suportado pelo NLU.* | *Coordenação segura via rádio.* | **-** |
+| **45** | Ultrapassando motoniveladora | Uma motoniveladora CAT 24M aparece à frente do operador. | Faça contato por rádio com a motoniveladora. Peça permissão para ultrapassar. | **Não** |
+| **46** | Ultrapassando um nivelador | Um nivelador aparece à frente do operador. | Faça contato por rádio com o nivelador. Peça permissão para ultrapassar. | **Não** |
+| **47** | Ultrapassar um veículo leve | Um veículo leve aparece à frente do operador. | Faça contato por rádio com o veículo leve. Peça permissão para ultrapassar. | **Não** |
 | **49** | Pneu traseiro furado | Operador percebe um pneu furado no retrovisor esquerdo. | Pare a máquina, selecione neutro, aplique freio, desligue o motor e use rádio. | **Não** |
+| **52** | Veículo leve no despejo | Veículo leve aparece nos espelhos ao dar ré na carga. | Use o rádio. Não aproxime a menos de 10 m do veículo leve. | **Não** |
+| **53** | Poeira excessiva | Poeira perigosa vindo de caminhão à frente prejudica a visão. | Aumente a distância e faça contato visual/via rádio. | **Não** |
 
 ---
 
@@ -400,6 +468,7 @@ cco_ia/
 ├── README.md           # Documentação técnica do sistema
 └── data/
     └── nlu.yml         # Base de dados de treinamento do motor NLU
+
 
 ```
 

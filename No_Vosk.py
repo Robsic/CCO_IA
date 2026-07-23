@@ -10,6 +10,7 @@ from rclpy.node import Node
 from std_msgs.msg import Int8, String
 from vosk import KaldiRecognizer, Model, SetLogLevel
 import bisect
+from sirv_msgs.msg import CAT793F_Events
 
 SetLogLevel(-1)
 
@@ -55,7 +56,7 @@ class VoskNode(Node):
         self._thread_audio.start()
 
         self.create_subscription(Int8,    '/botao_acionado', self._botao_cb, 10)
-        self.create_subscription(String,  '/eventos',        self._evento_cb, 10)
+        self.create_subscription(CAT793F_Events,  '/detected_events',        self._evento_cb, 10)
 
         self.get_logger().info('Nó Vosk iniciado. Aguardando acionamento do rádio (PTT)...')
 
@@ -63,21 +64,30 @@ class VoskNode(Node):
         i = bisect.bisect_left(EVENTOS_PERMITIDOS, evento_id)
         return i < len(EVENTOS_PERMITIDOS) and EVENTOS_PERMITIDOS[i] == evento_id
 
-    def _evento_cb(self, msg: String):
-        try:
-            dado = json.loads(msg.data)
-            evento_id = dado.get('id')
-            
+    def _evento_cb(self, msg: CAT793F_Events):  # msg.events[] -> cada item tem code.data e status.data
+        # Procura, dentro do array, um evento permitido com status IN_PROGRESS
+        evento_encontrado = None
+
+        for evt in msg.events:
+            evento_id = evt.code.data
+            status    = evt.status.data
+
             if not self._evento_permitido(evento_id):
-                self.get_logger().warn(f"Evento {evento_id} ignorado — não permitido.")
-                self.evento_ativo = {}
-                return
-                
-            self.evento_ativo = dado
-            self.get_logger().info(f"Evento ativo: [{evento_id}] {dado.get('Nome', '')}")
-            
-        except json.JSONDecodeError as e:
-            self.get_logger().error(f'JSON de evento inválido: {e}')
+                continue
+
+            if status == 'IN_PROGRESS':
+                evento_encontrado = {'id': evento_id, 'status': status}
+                break  # pega o primeiro em andamento; ajuste se precisar tratar vários
+
+        if evento_encontrado:
+            self.evento_ativo = evento_encontrado
+            self.get_logger().info(
+                f"Evento ativo: [{evento_encontrado['id']}] status={evento_encontrado['status']}"
+            )
+        else:
+            if self.evento_ativo:
+                self.get_logger().info("Nenhum evento permitido em IN_PROGRESS — limpando evento ativo.")
+            self.evento_ativo = {}
 
     def _audio_callback(self, indata, frames, time, status):
         # Evita processamento inútil de CPU quando o rádio está desligado
@@ -97,7 +107,7 @@ class VoskNode(Node):
             with self.q.mutex:
                 self.q.queue.clear()
             self.ouvindo = True
-            self.get_logger().info('🎙️ PTT Pressionado: Escutando...')
+            self.get_logger().info(' PTT Pressionado: Escutando...')
 
         # Botão Solto -> Corte agressivo e envio imediato
         elif not novo_estado and self.botao_estado:
@@ -124,10 +134,10 @@ class VoskNode(Node):
                 texto = json.loads(self.rec.FinalResult()).get('text', '').strip()
 
             if texto:
-                self.get_logger().info(f'✅ Enviado (Corte PTT): "{texto}"')
+                self.get_logger().info(f'Enviado (Corte PTT): "{texto}"')
                 self._publicar(texto)
             else:
-                self.get_logger().info('❌ Nenhuma fala detectada.')
+                self.get_logger().info('Nenhuma fala detectada.')
                 
             self.rec.Reset()
 
@@ -147,14 +157,14 @@ class VoskNode(Node):
                 if self.rec.AcceptWaveform(data):
                     texto = json.loads(self.rec.Result()).get('text', '').strip()
                     if texto and not self.ja_publicou:
-                        self.get_logger().info(f'✅ Enviado (Pausa Natural): "{texto}"')
+                        self.get_logger().info(f'Enviado (Pausa Natural): "{texto}"')
                         self._publicar(texto)
                         self.ja_publicou = True
                         self.rec.Reset()
 
     def _publicar(self, texto: str):
         if not self.evento_ativo:
-            self.get_logger().warn("⚠️ Fala bloqueada: nenhum evento ativo no momento.")
+            self.get_logger().warn(" Fala bloqueada: nenhum evento ativo no momento.")
             return
             
         payload = {

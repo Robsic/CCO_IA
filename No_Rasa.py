@@ -13,7 +13,6 @@ URL_NLU    = 'http://localhost:5005/model/parse'
 TIMEOUT_S  = 30
 DEBOUNCE_S = 0.6
 
-# Mapeamento evento_id → intenções válidas
 EVENTO_INTENCOES = {
     0 : {'informar_problema_mecanico'},
     1 : {'informar_falha_critica'},
@@ -114,7 +113,6 @@ class RasaNode(Node):
             f'Evento: {evento_id}'
         )
 
-        # Verifica se a intenção condiz com o evento
         if evento and not _intencao_valida(evento_id, intencao):
             self.get_logger().warn(
                 f'Intencao "{intencao}" nao condiz com evento {evento_id}.'

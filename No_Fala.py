@@ -67,7 +67,6 @@ class FalaNode(Node):
         if self.voz is None:
             return
         try:
-            # 1. Sintetiza em memória (evita corrida de leitura/escrita no mesmo arquivo em disco)
             buffer = io.BytesIO()
             with wave.open(buffer, 'wb') as wav_mem:
                 wav_mem.setnchannels(1)
@@ -77,11 +76,9 @@ class FalaNode(Node):
 
             audio_bytes = buffer.getvalue()
 
-            # 2. Salva uma cópia em disco (apenas para registro/depuração)
             with open(ARQUIVO_AUDIO, 'wb') as f:
                 f.write(audio_bytes)
 
-            # 3. Toca direto da memória
             buffer.seek(0)
             with wave.open(buffer, 'rb') as wf:
                 sample_rate = wf.getframerate()

@@ -62,56 +62,44 @@ class VoskNode(Node):
         evento_recebido = msg.events[0]
         evento_id = evento_recebido.code.data
         evento_status = evento_recebido.status.data
-        
-        # Cria uma tupla representando o estado atual que estamos recebendo
         estado_atual = (evento_id, evento_status)
-        
-        # Verifica se é a primeira vez rodando ou se o estado mudou em relação ao último
         mudou_estado = not hasattr(self, '_ultimo_estado') or self._ultimo_estado != estado_atual
         
-        # Se mudou, atualiza a memória do último estado
         if mudou_estado:
             self._ultimo_estado = estado_atual
         
-        # Validação de permissão do evento
         if not self._evento_permitido(evento_id):
             if mudou_estado:
                 self.get_logger().warn(f"Evento {evento_id} ignorado — não permitido.")
             self.evento_ativo = {}
             return
-            
-        # Atualiza a estrutura de dicionário que o restante do código espera
+        
         self.evento_ativo = {
             'id': evento_id,
             'status': evento_status,
             'Nome': f'Evento CAT {evento_id}'
         }
         
-        # Só publica no terminal se for um estado novo
         if mudou_estado:
             self.get_logger().info(f"Evento ativo: [{evento_id}] Status: {evento_status}")
 
     def _audio_callback(self, indata, frames, time, status):
-        # Evita processamento inútil de CPU quando o rádio está desligado
         if self.ouvindo:
             self.q.put(bytes(indata))
 
     def _botao_cb(self, msg: Int8):
         novo_estado = bool(msg.data)
 
-        # Botão Pressionado -> Começa a gravar
         if novo_estado and not self.botao_estado:
             with self._vosk_lock:
                 self.rec.Reset()
             self.ja_publicou = False
             
-            # Limpa qualquer lixo da fila instantaneamente usando mutex
             with self.q.mutex:
                 self.q.queue.clear()
             self.ouvindo = True
             self.get_logger().info('PTT Pressionado: Escutando...')
 
-        # Botão Solto -> Corte agressivo e envio imediato
         elif not novo_estado and self.botao_estado:
             self.ouvindo = False
             if not self.ja_publicou:
@@ -120,16 +108,13 @@ class VoskNode(Node):
         self.botao_estado = novo_estado
 
     def _forcar_resultado_imediato(self):
-        # Trava o acesso ao Vosk para o Loop de Áudio não atrapalhar
         with self._vosk_lock:
-            # Processa o restinho da fila rápido
             while not self.q.empty():
                 try:
                     self.rec.AcceptWaveform(self.q.get_nowait())
                 except queue.Empty:
                     break
 
-            # Extrai o PartialResult (não espera o tempo de silêncio para dar FinalResult)
             texto = json.loads(self.rec.PartialResult()).get('partial', '').strip()
             
             if not texto:
@@ -153,9 +138,7 @@ class VoskNode(Node):
             if not self.ouvindo:
                 continue
 
-            # Trava o acesso ao Vosk para garantir que o Botão Solto não resete o modelo no meio da leitura
             with self._vosk_lock:
-                # Se o Vosk detectar uma pausa natural ENQUANTO o botão ainda tá apertado
                 if self.rec.AcceptWaveform(data):
                     texto = json.loads(self.rec.Result()).get('text', '').strip()
                     if texto and not self.ja_publicou:
@@ -171,7 +154,7 @@ class VoskNode(Node):
             
         payload = {
             'fala'  : texto,
-            'evento': self.evento_ativo   # id, Nome, Estimulo, Criterios, etc.
+            'evento': self.evento_ativo
         }
         
         m = String()

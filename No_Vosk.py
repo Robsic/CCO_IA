@@ -56,27 +56,40 @@ class VoskNode(Node):
         return i < len(EVENTOS_PERMITIDOS) and EVENTOS_PERMITIDOS[i] == evento_id
 
     def _evento_cb(self, msg: CAT793FEvents):
-        # Verifica se a lista de eventos não está vazia
         if not msg.events:
             return
             
-        # Pega o primeiro evento da lista
         evento_recebido = msg.events[0]
         evento_id = evento_recebido.code.data
         evento_status = evento_recebido.status.data
         
+        # Cria uma tupla representando o estado atual que estamos recebendo
+        estado_atual = (evento_id, evento_status)
+        
+        # Verifica se é a primeira vez rodando ou se o estado mudou em relação ao último
+        mudou_estado = not hasattr(self, '_ultimo_estado') or self._ultimo_estado != estado_atual
+        
+        # Se mudou, atualiza a memória do último estado
+        if mudou_estado:
+            self._ultimo_estado = estado_atual
+        
+        # Validação de permissão do evento
         if not self._evento_permitido(evento_id):
-            self.get_logger().warn(f"Evento {evento_id} ignorado — não permitido.")
+            if mudou_estado:
+                self.get_logger().warn(f"Evento {evento_id} ignorado — não permitido.")
             self.evento_ativo = {}
             return
             
-        # Recria a estrutura de dicionário que o restante do seu código VoskNode espera
+        # Atualiza a estrutura de dicionário que o restante do código espera
         self.evento_ativo = {
             'id': evento_id,
             'status': evento_status,
-            'Nome': f'Evento CAT {evento_id}' # O Source 1 não envia nome, então criei um genérico
+            'Nome': f'Evento CAT {evento_id}'
         }
-        self.get_logger().info(f"Evento ativo: [{evento_id}] Status: {evento_status}")
+        
+        # Só publica no terminal se for um estado novo
+        if mudou_estado:
+            self.get_logger().info(f"Evento ativo: [{evento_id}] Status: {evento_status}")
 
     def _audio_callback(self, indata, frames, time, status):
         # Evita processamento inútil de CPU quando o rádio está desligado
@@ -96,7 +109,7 @@ class VoskNode(Node):
             with self.q.mutex:
                 self.q.queue.clear()
             self.ouvindo = True
-            self.get_logger().info('🎙️ PTT Pressionado: Escutando...')
+            self.get_logger().info('PTT Pressionado: Escutando...')
 
         # Botão Solto -> Corte agressivo e envio imediato
         elif not novo_estado and self.botao_estado:
@@ -123,10 +136,10 @@ class VoskNode(Node):
                 texto = json.loads(self.rec.FinalResult()).get('text', '').strip()
 
             if texto:
-                self.get_logger().info(f'✅ Enviado (Corte PTT): "{texto}"')
+                self.get_logger().info(f'Enviado (Corte PTT): "{texto}"')
                 self._publicar(texto)
             else:
-                self.get_logger().info('❌ Nenhuma fala detectada.')
+                self.get_logger().info('Nenhuma fala detectada.')
                 
             self.rec.Reset()
 
@@ -146,14 +159,14 @@ class VoskNode(Node):
                 if self.rec.AcceptWaveform(data):
                     texto = json.loads(self.rec.Result()).get('text', '').strip()
                     if texto and not self.ja_publicou:
-                        self.get_logger().info(f'✅ Enviado (Pausa Natural): "{texto}"')
+                        self.get_logger().info(f' Enviado (Pausa Natural): "{texto}"')
                         self._publicar(texto)
                         self.ja_publicou = True
                         self.rec.Reset()
 
     def _publicar(self, texto: str):
         if not self.evento_ativo:
-            self.get_logger().warn("⚠️ Fala bloqueada: nenhum evento ativo no momento.")
+            self.get_logger().warn("Fala bloqueada: nenhum evento ativo no momento.")
             return
             
         payload = {

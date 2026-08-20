@@ -10,6 +10,7 @@ from rclpy.node import Node
 from std_msgs.msg import Int8, String
 from vosk import KaldiRecognizer, Model, SetLogLevel
 import bisect
+from sirv_msgs.msg import CAT793FEvents
 
 SetLogLevel(-1)
 
@@ -47,28 +48,35 @@ class VoskNode(Node):
         self.stream.start()
         self._thread_audio.start()
         self.create_subscription(Int8,    '/botao_acionado', self._botao_cb, 10)
-        self.create_subscription(String,  '/detected_events',        self._evento_cb, 10)
+        self.create_subscription(CAT793FEvents, '/detected_events', self._evento_cb, 10)
         self.get_logger().info('Nó Vosk iniciado. Aguardando acionamento do rádio (PTT)...')
 
     def _evento_permitido(self, evento_id: int) -> bool:
         i = bisect.bisect_left(EVENTOS_PERMITIDOS, evento_id)
         return i < len(EVENTOS_PERMITIDOS) and EVENTOS_PERMITIDOS[i] == evento_id
 
-    def _evento_cb(self, msg: String):
-        try:
-            dado = json.loads(msg.data)
-            evento_id = dado.get('id')
+    def _evento_cb(self, msg: CAT793FEvents):
+        # Verifica se a lista de eventos não está vazia
+        if not msg.events:
+            return
             
-            if not self._evento_permitido(evento_id):
-                self.get_logger().warn(f"Evento {evento_id} ignorado — não permitido.")
-                self.evento_ativo = {}
-                return
-                
-            self.evento_ativo = dado
-            self.get_logger().info(f"Evento ativo: [{evento_id}] {dado.get('Nome', '')}")
+        # Pega o primeiro evento da lista
+        evento_recebido = msg.events[0]
+        evento_id = evento_recebido.code.data
+        evento_status = evento_recebido.status.data
+        
+        if not self._evento_permitido(evento_id):
+            self.get_logger().warn(f"Evento {evento_id} ignorado — não permitido.")
+            self.evento_ativo = {}
+            return
             
-        except json.JSONDecodeError as e:
-            self.get_logger().error(f'JSON de evento inválido: {e}')
+        # Recria a estrutura de dicionário que o restante do seu código VoskNode espera
+        self.evento_ativo = {
+            'id': evento_id,
+            'status': evento_status,
+            'Nome': f'Evento CAT {evento_id}' # O Source 1 não envia nome, então criei um genérico
+        }
+        self.get_logger().info(f"Evento ativo: [{evento_id}] Status: {evento_status}")
 
     def _audio_callback(self, indata, frames, time, status):
         # Evita processamento inútil de CPU quando o rádio está desligado

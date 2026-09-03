@@ -40,51 +40,53 @@ Todo o processamento ocorre **100% localmente**, sem nenhuma dependência de ser
 ## Arquitetura do Sistema
 
 ```
-                                     [Simulador SirvSimulator]
-                                                    │
-                                        /detected_events (CAT793FEvents)
-                                                    │
-                                                    ▼
-[Microfone / Rádio PTT]                  ┌─────────────────┐
-        │                                │  Evento ativo    │
-        │        /botao_acionado         │  (filtrado por   │
-        └───────────────────────────────▶│  whitelist)      │
-                                          └─────────────────┘
-                                                    │
-                                          ┌─────────────────┐
-                                          │   No_Vosk.py    │
-                                          │   (Vosk STT)    │
-                                          └─────────────────┘
-                                                    │
-                                    /fala_reconhecida (fala + evento)
-                                                    │
-                                                    ▼
-                                          ┌─────────────────┐
-                                          │   No_Rasa.py    │
-                                          │   (Rasa NLU)    │
-                                          │  + validação de │
-                                          │  coerência com  │
-                                          │  o evento ativo │
-                                          └─────────────────┘
-                                                    │
-                                       /resposta_rasa (JSON NLU + evento)
-                                                    │
-                                                    ▼
-                                          ┌──────────────────┐
-                                          │   No_LLM.py      │
-                                          │ (Ollama / Llama) │
-                                          └──────────────────┘
-                                                    │
-                                          /resposta_bot (sentenças)
-                                                    │
-                                                    ▼
-                                          ┌──────────────────┐
-                                          │   No_Fala.py     │
-                                          │  (Piper TTS)     │
-                                          └──────────────────┘
-                                                    │
-                                                    ▼
-                                            [Alto-falante]
+[Microfone / Rádio PTT]                            [Simulador SirvSimulator]
+        │                                                       │
+        │ /botao_acionado                    /detected_events   │
+        └──────────────────┐                 ┌────────────────────┘
+                            ▼                 ▼
+                     ┌─────────────────────────────┐
+                     │          No_Vosk.py          │
+                     │  Vosk STT + filtro de evento │
+                     │  (whitelist EVENTOS_PERMITIDOS│
+                     │   aplicada internamente)     │
+                     └─────────────────────────────┘
+                                    │
+                       /fala_reconhecida (fala + evento)
+                                    │
+                                    ▼
+                     ┌─────────────────────────────┐
+                     │          No_Rasa.py          │
+                     │  Rasa NLU + valida coerência │
+                     │      fala ↔ evento ativo     │
+                     └─────────────────────────────┘
+                          │                     │
+                     Coerente               Incoerente
+                          │                     │
+                          ▼                     │
+                 /resposta_rasa                 │
+               (JSON NLU + evento)               │
+                          │                     │
+                          ▼                     │
+                 ┌─────────────────┐            │
+                 │    No_LLM.py    │            │
+                 │  Ollama, resposta            │
+                 │  em streaming por sentença    │
+                 └─────────────────┘            │
+                          │                     │
+                          ▼                     ▼
+                     /resposta_bot  ◀────────────┘
+              (1 sentença por vez, em streaming,
+               ou 1 mensagem de erro se incoerente)
+                          │
+                          ▼
+                 ┌─────────────────┐
+                 │    No_Fala.py   │
+                 │   Piper TTS     │
+                 └─────────────────┘
+                          │
+                          ▼
+                   [Alto-falante]
 ```
 
 O sistema é composto por **4 nós ROS 2** independentes que se comunicam exclusivamente via tópicos:

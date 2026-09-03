@@ -11,7 +11,7 @@ from std_msgs.msg import String
 
 URL_NLU    = 'http://localhost:5005/model/parse'
 TIMEOUT_S  = 30
-DEBOUNCE_S = 0.6
+DEBOUNCE_S = 0.25
 
 EVENTO_INTENCOES = {
     0 : {'informar_problema_mecanico'},

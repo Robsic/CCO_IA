@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-# '/resposta_rasa' (JSON NLU) → Ollama → publica UMA ÚNICA resposta em '/resposta_bot'
+# '/resposta_rasa' (JSON NLU) → Ollama (streaming) → publica cada sentença
 import json
+import re
 import threading
 import ollama
 import rclpy
@@ -106,27 +107,26 @@ class LLMNode(Node):
                     self._historico[:] = self._historico[-(MAX_HISTORICO * 2):]
                 historico_snapshot = list(self._historico)
 
-            resposta = ollama.chat(
+            stream = ollama.chat(
                 model=MODELO_LLM,
                 messages=[{'role': 'system', 'content': SYSTEM_PROMPT}, *historico_snapshot],
-                stream=False,
+                stream=True,
                 keep_alive=-1,
                 options={
-                    'num_gpu'    : 0,
+                    # 'num_gpu' removido: sem esse limite, o Ollama usa a GPU
+                    # automaticamente quando disponível (senão cai para CPU).
                     'temperature': 0.1,
-                    'num_predict': 80,
+                    'num_predict': 48,
                     'num_ctx'    : 512,
                     'stop'       : ['\n', 'Motorista:', 'CCO:', 'Sua tarefa:']
                 }
             )
 
-            texto_completo = resposta.get('message', {}).get('content', '').replace('"', '').strip()
+            texto_completo = self._processar_stream(stream)
 
             if texto_completo:
-                self.get_logger().info(f'[LLM] Resposta: "{texto_completo}"')
                 with self._lock:
                     self._historico.append({'role': 'assistant', 'content': texto_completo})
-                self._publicar_resposta(texto_completo)
             else:
                 self.get_logger().warn('[LLM] Resposta vazia.')
 
@@ -135,6 +135,38 @@ class LLMNode(Node):
         finally:
             with self._lock:
                 self._processando = False
+
+    def _processar_stream(self, stream) -> str:
+        """Consome os tokens do Ollama e publica cada sentença assim que ela
+        é fechada (., ! ou ?), em vez de esperar a resposta completa.
+        Retorna o texto integral acumulado, para manter o histórico."""
+        buffer = ''
+        texto_completo = ''
+
+        for chunk in stream:
+            pedaco = chunk.get('message', {}).get('content', '')
+            if not pedaco:
+                continue
+            buffer += pedaco
+
+            while True:
+                fim = re.search(r'[.!?]', buffer)
+                if not fim:
+                    break
+                sentenca = buffer[:fim.end()].replace('"', '').strip()
+                buffer = buffer[fim.end():]
+                if sentenca:
+                    self.get_logger().info(f'[LLM] Sentenca (streaming): "{sentenca}"')
+                    texto_completo = f'{texto_completo} {sentenca}'.strip()
+                    self._publicar_resposta(sentenca, streaming=True)
+
+        restante = buffer.replace('"', '').strip()
+        if restante:
+            self.get_logger().info(f'[LLM] Sentenca final: "{restante}"')
+            texto_completo = f'{texto_completo} {restante}'.strip()
+            self._publicar_resposta(restante, streaming=True)
+
+        return texto_completo
 
     def _montar_contexto_evento(self, evento: dict) -> str:
         if not evento:
@@ -146,8 +178,8 @@ class LLMNode(Node):
             f"- Criterios esperados: {evento.get('Criterios', '')}\n\n"
         )
 
-    def _publicar_resposta(self, texto: str):
-        payload  = {'respostas': [texto], 'streaming': False}
+    def _publicar_resposta(self, texto: str, streaming: bool = False):
+        payload  = {'respostas': [texto], 'streaming': streaming}
         out      = String()
         out.data = json.dumps(payload, ensure_ascii=False)
         self.pub.publish(out)

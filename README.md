@@ -35,8 +35,6 @@ O **CCO-IA** é um sistema embarcado de assistência inteligente à operação d
 
 Todo o processamento ocorre **100% localmente**, sem nenhuma dependência de serviços em nuvem.
 
----
-
 ## Arquitetura do Sistema
 
 ```
@@ -56,22 +54,23 @@ Todo o processamento ocorre **100% localmente**, sem nenhuma dependência de ser
                                     │
                                     ▼
                      ┌─────────────────────────────┐
-                     │          No_Rasa.py          │
-                     │  Rasa NLU + valida coerência │
-                     │      fala ↔ evento ativo     │
-                     └─────────────────────────────┘
-                          │                     │
-                     Coerente               Incoerente
-                          │                     │
-                          ▼                     │
-                 /resposta_rasa                 │
-               (JSON NLU + evento)               │
-                          │                     │
+                     │          No_Rasa.py          │──────┐
+                     │  Rasa NLU + valida coerência │      │
+                     │      fala ↔ evento ativo     │      │
+                     └─────────────────────────────┘       │
+                          │                     │          │ /cat703f/radio/phone
+                     Coerente               Incoerente     │ (Bool — publicado nos
+                          │                     │          │  dois casos: true=coerente,
+                          ▼                     │          │  false=incoerente)
+                 /resposta_rasa                 │          ▼
+               (JSON NLU + evento)              │   [Simulador do caminhão]
+                          │                     │    
                           ▼                     │
                  ┌─────────────────┐            │
                  │    No_LLM.py    │            │
-                 │  Ollama, resposta            │
-                 │  em streaming por sentença    │
+                 │  Ollama, resposta│           │
+                 │  em streaming    │           │
+                 │  por sentença    │           │
                  └─────────────────┘            │
                           │                     │
                           ▼                     ▼
@@ -80,13 +79,13 @@ Todo o processamento ocorre **100% localmente**, sem nenhuma dependência de ser
                ou 1 mensagem de erro se incoerente)
                           │
                           ▼
-                 ┌─────────────────┐
-                 │    No_Fala.py   │
-                 │   Piper TTS     │
-                 └─────────────────┘
+                     ┌─────────────────┐
+                     │    No_Fala.py   │
+                     │   Piper TTS     │
+                     └─────────────────┘
                           │
                           ▼
-                   [Alto-falante]
+                       [Alto-falante]
 ```
 
 O sistema é composto por **4 nós ROS 2** independentes que se comunicam exclusivamente via tópicos:
@@ -109,6 +108,7 @@ O sistema é composto por **4 nós ROS 2** independentes que se comunicam exclus
 | `/fala_reconhecida` | `String` (JSON) | `vosk_node` | `rasa_node` | Texto transcrito da fala + evento ativo no momento da fala |
 | `/resposta_rasa` | `String` (JSON) | `rasa_node` | `llm_node` | Intenção, confiança, entidades e evento associado |
 | `/resposta_bot` | `String` (JSON) | `llm_node` (ou `rasa_node`, em caso de erro de coerência) | `fala_node` | Sentenças geradas para o TTS (streaming) |
+| `/cat703f/radio/phone` | `Bool` | `rasa_node` | Simulador do caminhão | `true` = intenção coerente com o evento ativo, `false` = incoerente |
 
 > Falas só são publicadas em `/fala_reconhecida` quando há um evento ativo reconhecido (`evento_ativo` não vazio) — ver [Validação de Eventos](#validação-de-eventos-correlação-fala--simulador).
 
@@ -206,26 +206,23 @@ O projeto usa **dois intérpretes Python distintos** por incompatibilidade de de
 
 ## Instalação
 
-### 1. Clone o repositório e configure o ambiente ROS 2
+### 1. Clone o repositório
 
 ```bash
+mkdir -p ~/ros2_ws/src
 cd ~/ros2_ws/src
 git clone <url-do-repositorio> cco_ia
-cd ~/ros2_ws
-colcon build --packages-select cco_ia
-source install/setup.bash
 ```
 
 ### 2. Garanta que o pacote `sirv_msgs` está disponível
 
 ```bash
-# Exemplo, ajuste o caminho conforme o seu workspace do simulador
 cd ~/codigos/SirvSimulator
 colcon build --packages-select sirv_msgs
 source install/setup.bash
 ```
 
-> Esse pacote precisa ser sourceado em **todo terminal** que for rodar `No_Vosk.py` ou `testar_eventos.sh`, pois define o tipo de mensagem `CAT793FEvents`.
+> Esse pacote precisa ser sourceado em **todo terminal** que for rodar `No_Vosk.py`, pois define o tipo de mensagem `CAT793FEvents`.
 
 ### 3. Instale as dependências no Python 3.12 (sistema)
 
@@ -336,29 +333,6 @@ python3 No_LLM.py &
 python3 No_Fala.py &
 wait
 ```
-
-> O `&` executa cada nó em background. O `wait` mantém o terminal aberto e aguarda todos os processos. Para encerrar tudo, pressione `Ctrl+C`.
-
-Ou utilize um arquivo `launch` para subir tudo de uma vez:
-
-```python
-# launch/cco_ia.launch.py
-from launch import LaunchDescription
-from launch_ros.actions import Node
-
-def generate_launch_description():
-    return LaunchDescription([
-        Node(package='cco_ia', executable='vosk_node'),
-        Node(package='cco_ia', executable='rasa_node'),
-        Node(package='cco_ia', executable='llm_node'),
-        Node(package='cco_ia', executable='fala_node'),
-    ])
-```
-
-```bash
-ros2 launch cco_ia cco_ia.launch.py
-```
-
 ---
 
 ## Testes Automatizados
@@ -465,7 +439,7 @@ cco_ia/
 |---|---|---|
 | `URL_NLU` | `http://localhost:5005/model/parse` | Endpoint da API Rasa NLU |
 | `TIMEOUT_S` | `30` | Timeout das requisições HTTP (segundos) |
-| `DEBOUNCE_S` | `0.6` | Tempo de debounce antes de enviar a fala ao NLU, evitando disparos duplicados |
+| `DEBOUNCE_S` | `0.25` | Tempo de debounce antes de enviar a fala ao NLU, evitando disparos duplicados |
 | `EVENTO_INTENCOES` | dicionário | Mapeia cada código de evento às intenções consideradas coerentes com ele |
 
 ### `No_LLM.py`

@@ -19,11 +19,11 @@ Regras:
 - Priorize a segurança e a integridade da operação acima de tudo.
 - Sempre dê uma resposta que ajude com medidas de segurança do contexto da mineração.
 - Não autorize nada, apenas informe o que o motorista deve fazer nessa situação, com base nas medidas de segurança.
-- Caso sua resposta exija informações externas que vocẽ não tenha, informe isso ao condutor.
 - Responda APENAS com a fala que será transmitida no rádio. Não adicione comentários, explicações, aspas ou notas.
 - Use linguagem simples e jargões de rádio apropriados (ex: "Positivo", "Na escuta", "Câmbio", "QAP", "Copiado").
 - O texto gerado irá direto para um sintetizador de voz (TTS). Não use formatações especiais ou emojis.
 - Em atividades perigosas informe a melhor medida de segurança para o motorista.
+- Em caso de perigo em que a permanência do motoria na cabine atente contra a segurança dele, peça para ele evacuar imediatamente.
 
 Exemplos do padrão esperado:
 
@@ -40,7 +40,7 @@ GUIA_DE_ACOES = {
     'informar_falha_mecanica_eletrica': 'Ordene a parada total, aplicação do freio de estacionamento e desligamento do motor. Confirme que a manutenção será enviada.',
     'informar_falha_freio_direcao'  : 'Falha Critica: Ordene a parada imediata, freio de estacionamento e desligamento do motor. Confirme envio de resgate urgente.',
     'informar_superaquecimento'     : 'Oriente a parar, selecionar Neutro e aumentar o RPM acima de 1200 por mais de 5 segundos para resfriamento.',
-    'informar_emergencia_incendio'  : 'Comando Critico: Ordene parada total, freio de estacionamento, corte do motor e acionamento do sistema de supressão de incêndio.',
+    'informar_emergencia_incendio'  : 'Comando Critico: Ordene parada total e saia do veículo, freio de estacionamento, corte do motore e acionamento do sistema de supressão de incêndio.',
     'informar_baixa_visibilidade_poeira': 'Oriente a parar, engatar neutro e aplicar freio de estacionamento devido à poeira perigosa.',
     'informar_emergencia_area_radio': 'Protocolo de Emergência: Ordene veículo parado, freio de estacionamento, neutro e silêncio no rádio até liberação.',
     'informar_problema_mecanico'    : 'Ordene a parada total, aplicação do freio de estacionamento e desligamento do motor. Confirme que a manutenção será enviada.',

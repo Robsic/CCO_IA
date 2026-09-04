@@ -8,6 +8,7 @@ import rclpy
 import requests
 from rclpy.node import Node
 from std_msgs.msg import String
+from std_msgs.msg import Bool
 
 URL_NLU    = 'http://localhost:5005/model/parse'
 TIMEOUT_S  = 30
@@ -58,6 +59,7 @@ class RasaNode(Node):
         super().__init__('rasa_node')
         self.pub      = self.create_publisher(String, '/resposta_rasa', 10)
         self.pub_fala = self.create_publisher(String, '/resposta_bot',  10)
+        self.pub_correctude = self.create_publisher(Bool, '/cat703f/radio/phone', 10)
         self.sess     = requests.Session()
         self._debounce_lock  = threading.Lock()
         self._debounce_timer = None
@@ -117,6 +119,9 @@ class RasaNode(Node):
             self.get_logger().warn(
                 f'Intencao "{intencao}" nao condiz com evento {evento_id}.'
             )
+            valida = Bool()    
+            valida.data = False
+            self.pub_correctude.publish(valida)
             self._publicar_erro('Sua fala nao foi condizente com a realidade.')
             return
 
@@ -129,6 +134,9 @@ class RasaNode(Node):
         }
         out      = String()
         out.data = json.dumps(payload, ensure_ascii=False)
+        valida = Bool()    
+        valida.data = True
+        self.pub_correctude.publish(valida)
         self.pub.publish(out)
 
     def _publicar_erro(self, mensagem: str):

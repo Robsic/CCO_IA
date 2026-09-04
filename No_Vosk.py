@@ -165,6 +165,10 @@ class VoskNode(Node):
     def destroy_node(self):
         self._parar.set()
         self._thread_audio.join(timeout=1.0)
+        if self._thread_audio.is_alive():
+            self.get_logger().warn(
+                'Thread de audio nao encerrou a tempo (possivel travamento em AcceptWaveform).'
+            )
         self.stream.stop()
         self.stream.close()
         super().destroy_node()

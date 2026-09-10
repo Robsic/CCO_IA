@@ -15,6 +15,13 @@ intents:
   - solicitar_abastecimento
   - informar_condicao_climatica
   - solicitar_apoio_pista
+  - informar_veiculo_leve_proximo
+  - informar_parada_abrupta_frente
+  - informar_falha_mecanica_eletrica
+  - informar_falha_freio_direcao
+  - informar_superaquecimento
+  - informar_baixa_visibilidade_poeira
+  - informar_emergencia_area_radio
 
 entities:
   - local

@@ -197,6 +197,64 @@ nlu:
       - [carro pipa](veiculo) necessário na [frente de lavra](local)
       - pista ruim, mandar equipamento para nivelar
 
+  - intent: informar_veiculo_leve_proximo
+    examples: |
+      - veículo leve muito próximo
+      - carro leve colado em mim
+      - [veículo leve](veiculo) muito perto do meu caminhão
+      - tem um [carro](veiculo) [colado](sintoma) na minha traseira
+      - [pickup](veiculo) andando muito perto de mim
+      - veículo leve na minha lateral, muito próximo
+      - carro leve seguindo colado, sem distância segura
+
+  - intent: informar_parada_abrupta_frente
+    examples: |
+      - caminhão à frente parou de repente
+      - [caminhão](veiculo) na minha frente [parou](sintoma) do nada
+      - o veículo à frente freou bruscamente
+      - equipamento parou de repente na minha frente
+      - [caminhão](veiculo) freou forte à frente, quase bati
+
+  - intent: informar_falha_mecanica_eletrica
+    examples: |
+      - pane elétrica no painel
+      - falha mecânica geral
+      - [painel](componente) todo apagou, pane elétrica
+      - deu [pane](sintoma) mecânica no equipamento
+      - [falha](sintoma) elétrica e mecânica ao mesmo tempo
+      - sistema elétrico do caminhão falhou
+
+  - intent: informar_falha_freio_direcao
+    examples: |
+      - perdi o freio
+      - falha na direção
+      - [freio](componente) não responde, perdi o freio
+      - [direção](componente) travou, não consigo virar
+      - freio de serviço falhou totalmente
+
+  - intent: informar_superaquecimento
+    examples: |
+      - motor superaquecendo
+      - temperatura do motor muito alta
+      - [motor](componente) [fervendo](sintoma)
+      - temperatura do [motor](componente) [subiu demais](nivel_medida)
+      - [motor](componente) superaqueceu, luz de alerta acesa
+
+  - intent: informar_baixa_visibilidade_poeira
+    examples: |
+      - muita poeira, visibilidade ruim
+      - [poeira](obstaculo_via) muito forte, quase não enxergo nada
+      - visibilidade zero por causa da [poeira](obstaculo_via)
+      - poeira excessiva na pista, não vejo nada à frente
+      - [poeira](obstaculo_via) densa cobrindo a via
+
+  - intent: informar_emergencia_area_radio
+    examples: |
+      - emergência na área, silêncio no rádio
+      - protocolo de silêncio no rádio por emergência
+      - [emergência](prioridade) na área, mantenham silêncio na frequência
+      - central decretou silêncio de rádio, emergência na área
+
   # --- MAPEAMENTO DE SINÔNIMOS ---
   - synonym: caminhão pipa
     examples: |

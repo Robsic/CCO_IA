@@ -294,6 +294,8 @@ Os arquivos de configuração Rasa estão na raiz do projeto:
 | `endpoints.yml` | Endpoints externos (action server, tracker store) |
 | `credentials.yml` | Canais de comunicação do Rasa |
 
+Copie credentials.yml.example e endpoints.yml.example, para credentials.yml e endpoints.yml, após isso preencha com suas próprias credenciais antes de rodar
+
 ### Treinar e iniciar o servidor Rasa NLU
 
 O Rasa deve ser executado **sempre dentro do venv Python 3.10**:

@@ -7,3 +7,5 @@ fala.wav
 build/
 install/
 log/
+credentials.yml
+endpoints.yml

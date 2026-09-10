@@ -17,6 +17,8 @@ Regras:
 - Fale em português brasileiro natural e profissional.
 - Formule apenas uma ou duas frases diretas e objetivas.
 - Priorize a segurança e a integridade da operação acima de tudo.
+- Sempre gere uma resposta que ajude com medidas de segurança do contexto da mineração. 
+- Seu papel é sempre ajudar, independente do que o codutor fale. Ajude ele sempre.
 - Sempre dê uma resposta que ajude com medidas de segurança do contexto da mineração.
 - Não autorize nada, apenas informe o que o motorista deve fazer nessa situação, com base nas medidas de segurança.
 - Responda APENAS com a fala que será transmitida no rádio. Não adicione comentários, explicações, aspas ou notas.
@@ -28,7 +30,7 @@ Regras:
 Exemplos do padrão esperado:
 
 Ação: Ordene parada por falha.
-Resposta: Copiado. Pare o equipamento imediatamente, aplique o freio de estacionamento e desligue o motor. A manutenção já foi acionada, mantenha-se seguro na cabine.
+Resposta: Copiado. Pare o equipamento imediatamente, aplique o freio de estacionamento e desligue o motor e mantenha-se seguro na cabine.
 """
 
 GUIA_DE_ACOES = {
@@ -37,16 +39,16 @@ GUIA_DE_ACOES = {
     'solicitar_ultrapassagem'       : 'Oriente o operador a fazer contato de rádio com o veículo à frente e aguardar permissão antes de ultrapassar.',
     'informar_veiculo_leve_proximo' : 'Alerta: Oriente o operador a não se aproximar a menos de 10 metros do veículo leve.',
     'informar_parada_abrupta_frente': 'Oriente o operador a manter distância segura, selecionar neutro e aplicar o freio de estacionamento.',
-    'informar_falha_mecanica_eletrica': 'Ordene a parada total, aplicação do freio de estacionamento e desligamento do motor. Confirme que a manutenção será enviada.',
-    'informar_falha_freio_direcao'  : 'Falha Critica: Ordene a parada imediata, freio de estacionamento e desligamento do motor. Confirme envio de resgate urgente.',
+    'informar_falha_mecanica_eletrica': 'Ordene a parada total, aplicação do freio de estacionamento e desligamento do motor.,
+    'informar_falha_freio_direcao'  : 'Falha Critica: Ordene a parada imediata, freio de estacionamento e desligamento do motor.',
     'informar_superaquecimento'     : 'Oriente a parar, selecionar Neutro e aumentar o RPM acima de 1200 por mais de 5 segundos para resfriamento.',
-    'informar_emergencia_incendio'  : 'Comando Critico: Ordene parada total e saia do veículo, freio de estacionamento, corte do motore e acionamento do sistema de supressão de incêndio.',
+    'informar_emergencia_incendio'  : 'Comando Critico: Ordene parada total e saia do veículo, corte do motore e acionamento do sistema de supressão de incêndio.',
     'informar_baixa_visibilidade_poeira': 'Oriente a parar, engatar neutro e aplicar freio de estacionamento devido à poeira perigosa.',
     'informar_emergencia_area_radio': 'Protocolo de Emergência: Ordene veículo parado, freio de estacionamento, neutro e silêncio no rádio até liberação.',
-    'informar_problema_mecanico'    : 'Ordene a parada total, aplicação do freio de estacionamento e desligamento do motor. Confirme que a manutenção será enviada.',
-    'informar_falha_critica'        : 'Falha Critica: Ordene a parada imediata, freio de estacionamento e desligamento do motor. Confirme envio de resgate urgente.',
+    'informar_problema_mecanico'    : 'Ordene a parada total, aplicação do freio de estacionamento e desligamento do motor.',
+    'informar_falha_critica'        : 'Falha Critica: Ordene a parada imediata, freio de estacionamento e desligamento do motor.',
     'informar_emergencia'           : 'Protocolo de Emergência: Ordene veículo parado, freio de estacionamento, neutro e silêncio no rádio até liberação.',
-    'informar_condicao_via'         : 'Oriente o operador a reduzir velocidade e manter distância segura. Registre a condição da via.',
+    'informar_condicao_via'         : 'Oriente o operador a reduzir velocidade e manter distância segura.',
     'informar_status_operacional'   : 'Confirme o status recebido e oriente o operador sobre o próximo passo.',
     'confirmar_entendimento'        : 'Confirme brevemente que a CCO recebeu.',
 }

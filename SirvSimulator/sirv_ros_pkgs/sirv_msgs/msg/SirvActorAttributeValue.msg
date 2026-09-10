@@ -1,0 +1,11 @@
+# Copyright (c) 2023 Laboratory of Robotics, Intelligent and Complex Systems (RobSIC) at the Universidade Federal
+# de Itajubá (UNIFEI), Campus of Itabira.
+#
+# This work is licensed under the terms of XXX license.
+# Author: Giovani Bernardes Vitor
+
+# Actor Attribute Value
+
+string id
+uint8 type
+string value

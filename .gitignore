@@ -4,3 +4,6 @@ models/
 *.zip
 vosk-model-small-pt-0.3/
 fala.wav
+build/
+install/
+log/

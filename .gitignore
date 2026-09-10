@@ -9,3 +9,4 @@ install/
 log/
 credentials.yml
 endpoints.yml
+testar_eventos.sh

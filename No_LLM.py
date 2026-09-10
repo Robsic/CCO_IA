@@ -39,7 +39,7 @@ GUIA_DE_ACOES = {
     'solicitar_ultrapassagem'       : 'Oriente o operador a fazer contato de rádio com o veículo à frente e aguardar permissão antes de ultrapassar.',
     'informar_veiculo_leve_proximo' : 'Alerta: Oriente o operador a não se aproximar a menos de 10 metros do veículo leve.',
     'informar_parada_abrupta_frente': 'Oriente o operador a manter distância segura, selecionar neutro e aplicar o freio de estacionamento.',
-    'informar_falha_mecanica_eletrica': 'Ordene a parada total, aplicação do freio de estacionamento e desligamento do motor.,
+    'informar_falha_mecanica_eletrica': 'Ordene a parada total, aplicação do freio de estacionamento e desligamento do motor.',
     'informar_falha_freio_direcao'  : 'Falha Critica: Ordene a parada imediata, freio de estacionamento e desligamento do motor.',
     'informar_superaquecimento'     : 'Oriente a parar, selecionar Neutro e aumentar o RPM acima de 1200 por mais de 5 segundos para resfriamento.',
     'informar_emergencia_incendio'  : 'Comando Critico: Ordene parada total e saia do veículo, corte do motore e acionamento do sistema de supressão de incêndio.',

@@ -217,15 +217,20 @@ source install/setup.bash
 ```
 
 ### 2. Garanta que o pacote `sirv_msgs` está disponível
+O pacote `sirv_msgs` está dentro do workspace `SirvSimulator`. É importante rodar o arquivo `sirv_simulator.sh`, pois ele é responsável por compilar o ambiente e gerar as pastas necessárias.
 
 ```bash
-# Exemplo, ajuste o caminho conforme o seu workspace do simulador
-cd ~/codigos/SirvSimulator
-colcon build --packages-select sirv_msgs
-source install/setup.bash
-```
+# Navegue até a pasta do simulador
+cd ~/cco_ia/SirvSimulator
 
-> Esse pacote precisa ser sourceado em **todo terminal** que for rodar `No_Vosk.py` ou `testar_eventos.sh`, pois define o tipo de mensagem `CAT793FEvents`.
+# Rode o script do simulador para compilar e iniciar
+./sirv_simulator.sh
+
+# Se precisar usar os comandos do ROS neste mesmo terminal após fechar o simulador, carregue o ambiente:
+source install/setup.bash
+
+> Esse pacote precisa ser sourceado em **todo terminal** que for rodar `No_Vosk.py`, pois define o tipo de mensagem `CAT793FEvents`.
+```
 
 ### 3. Instale as dependências no Python 3.12 (sistema)
 
